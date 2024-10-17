@@ -4,13 +4,4 @@ name = "bolt"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2024-07-01"
 pages_build_output_dir = "./build/client"
-<<<<<<< HEAD
-=======
 
-<<<<<<< HEAD
-
-=======
-[build]
-command = "pnpm install && pnpm run build"
->>>>>>> 8650021f48adf063619030ec306ec8bb50a3eded
->>>>>>> 837ef3b8f287a41196be1a2b6f0a174bfcadcd65
