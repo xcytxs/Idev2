@@ -7,7 +7,8 @@ import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
+import { debounce } from 'lodash';
+import * as diff from 'diff';
 
 const logger = createScopedLogger('FilesStore');
 
