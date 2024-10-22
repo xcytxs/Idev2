@@ -10,6 +10,13 @@ export default defineConfig((config) => {
     build: {
       target: 'esnext',
     },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler', // or "modern"
+        },
+      },
+    },
     plugins: [
       nodePolyfills({
         include: ['path', 'buffer'],
