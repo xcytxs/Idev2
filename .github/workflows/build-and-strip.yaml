@@ -1,0 +1,47 @@
+name: Build and Strip
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    name: Build and Strip Source Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.15.1'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build Project
+        run: pnpm run build
+
+      - name: Strip Source Code
+        run: |
+          mkdir -p build
+          cp package.json build/
+          # Copy only necessary files to the build directory
+          cp -r build/client/* build/
+          # Remove source code files
+          find . -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -exec rm -f {} +
+          # Optionally, you can also remove other unnecessary files
+          rm -rf node_modules
+          rm -rf .git
+          rm -rf .github
+          # Add any other files or directories you want to exclude
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: build/
