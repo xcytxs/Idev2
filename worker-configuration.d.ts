@@ -3,5 +3,6 @@ interface Env {
   OPENAI_API_KEY: string;
   GROQ_API_KEY: string;
   OPEN_ROUTER_API_KEY: string;
+  MISTRAL_AI_API_KEY: string;
   OLLAMA_API_BASE_URL: string;
 }

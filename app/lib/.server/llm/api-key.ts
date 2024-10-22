@@ -20,8 +20,8 @@ export function getAPIKey(cloudflareEnv: Env, provider: string) {
     case 'OpenRouter':
       return env.OPEN_ROUTER_API_KEY || cloudflareEnv.OPEN_ROUTER_API_KEY;
     case 'Mistral':
-      return env.MISTRAL_API_KEY || cloudflareEnv.MISTRAL_API_KEY;
+      return env.MISTRAL_AI_API_KEY || cloudflareEnv.MISTRAL_AI_API_KEY;
     default:
-      return "";
+      return '';
   }
 }
