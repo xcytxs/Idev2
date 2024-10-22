@@ -1,4 +1,4 @@
-name: Build and Strip
+name: Release Build
 
 on:
   push:
