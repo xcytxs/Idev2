@@ -4,8 +4,9 @@ import { getAPIKey } from '~/lib/.server/llm/api-key';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createMistral } from '@ai-sdk/mistral';
 import { ollama } from 'ollama-ai-provider';
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 export function getAnthropicModel(apiKey: string, model: string) {
   const anthropic = createAnthropic({
@@ -24,11 +25,15 @@ export function getOpenAIModel(apiKey: string, model: string) {
 }
 
 export function getGoogleModel(apiKey: string, model: string) {
-  const google = createGoogleGenerativeAI(
-    apiKey,
-  );
+  const google = createGoogleGenerativeAI(apiKey);
 
   return google(model);
+}
+
+export function getMistralModel(apiKey: string, model: string) {
+  const mistral = createMistral(apiKey);
+
+  return mistral(model);
 }
 
 export function getGroqModel(apiKey: string, model: string) {
@@ -46,7 +51,7 @@ export function getOllamaModel(model: string) {
 
 export function getOpenRouterModel(apiKey: string, model: string) {
   const openRouter = createOpenRouter({
-    apiKey
+    apiKey,
   });
 
   return openRouter.chat(model);
@@ -54,7 +59,6 @@ export function getOpenRouterModel(apiKey: string, model: string) {
 
 export function getModel(provider: string, model: string, env: Env) {
   const apiKey = getAPIKey(env, provider);
-
 
   switch (provider) {
     case 'Anthropic':
@@ -66,7 +70,9 @@ export function getModel(provider: string, model: string, env: Env) {
     case 'OpenRouter':
       return getOpenRouterModel(apiKey, model);
     case 'Google':
-      return getGoogleModel(apiKey, model)
+      return getGoogleModel(apiKey, model);
+    case 'Mistral':
+      return getMistralModel(apiKey, model);
     default:
       return getOllamaModel(model);
   }
