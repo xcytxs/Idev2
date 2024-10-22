@@ -18,9 +18,11 @@
     "paths": {
       "~/*": ["./app/*"]
     },
-
-    // vite takes care of building everything, not tsc
-    "noEmit": true
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "**/*.ts",

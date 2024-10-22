@@ -7,7 +7,8 @@ import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
+import { debounce } from 'lodash';
+import * as diff from 'diff';
 
 const logger = createScopedLogger('FilesStore');
 
@@ -51,6 +52,9 @@ export class FilesStore {
     return this.#size;
   }
 
+  #contentCache: Map<string, string> = new Map();
+  #saveDebounce: Map<string, ReturnType<typeof debounce>> = new Map();
+
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
 
@@ -90,27 +94,52 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
       }
 
-      const oldContent = this.getFile(filePath)?.content;
+      const oldContent = this.#contentCache.get(filePath) || '';
 
-      if (!oldContent) {
-        unreachable('Expected content to be defined');
+      if (this.#hasChanges(oldContent, content)) {
+        const debouncedSave = this.#saveDebounce.get(filePath) || this.#createDebouncedSave(filePath);
+        debouncedSave(content);
+      } else {
+        logger.info('No changes detected, skipping file write');
       }
 
-      await webcontainer.fs.writeFile(relativePath, content);
-
-      if (!this.#modifiedFiles.has(filePath)) {
-        this.#modifiedFiles.set(filePath, oldContent);
-      }
-
-      // we immediately update the file and don't rely on the `change` event coming from the watcher
+      // Update the file in memory immediately
       this.files.setKey(filePath, { type: 'file', content, isBinary: false });
+      this.#contentCache.set(filePath, content);
 
-      logger.info('File updated');
     } catch (error) {
       logger.error('Failed to update file content\n\n', error);
-
       throw error;
     }
+  }
+
+  #hasChanges(oldContent: string, newContent: string): boolean {
+    const changes = diff.diffLines(oldContent, newContent);
+    return changes.some(change => change.added || change.removed);
+  }
+
+  #createDebouncedSave(filePath: string) {
+    const debouncedSave = debounce(async (content: string) => {
+      const webcontainer = await this.#webcontainer;
+      const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+
+      try {
+        await webcontainer.fs.writeFile(relativePath, content);
+        logger.info(`File ${filePath} updated`);
+
+        if (!this.#modifiedFiles.has(filePath)) {
+          const oldContent = this.getFile(filePath)?.content;
+          if (oldContent) {
+            this.#modifiedFiles.set(filePath, oldContent);
+          }
+        }
+      } catch (error) {
+        logger.error(`Failed to write file ${filePath}\n\n`, error);
+      }
+    }, 500);
+
+    this.#saveDebounce.set(filePath, debouncedSave);
+    return debouncedSave;
   }
 
   async #init() {
@@ -138,7 +167,7 @@ export class FilesStore {
         case 'remove_dir': {
           this.files.setKey(sanitizedPath, undefined);
 
-          for (const [direntPath] of Object.entries(this.files)) {
+          for (const [direntPath] of Object.entries(this.files.get())) {
             if (direntPath.startsWith(sanitizedPath)) {
               this.files.setKey(direntPath, undefined);
             }
@@ -179,6 +208,10 @@ export class FilesStore {
           // we don't care about these events
           break;
         }
+        default: {
+          logger.warn(`Unhandled event type: ${type}`);
+          break;
+        }
       }
     }
   }
@@ -191,7 +224,7 @@ export class FilesStore {
     try {
       return utf8TextDecoder.decode(buffer);
     } catch (error) {
-      console.log(error);
+      logger.error('Failed to decode file content', error);
       return '';
     }
   }
