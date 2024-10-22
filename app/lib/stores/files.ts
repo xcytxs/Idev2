@@ -91,7 +91,7 @@ export class FilesStore {
       const relativePath = nodePath.relative(webcontainer.workdir, filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
+        throw new Error(`EINVAL: invalid file path, write '${filePath}'`);
       }
 
       const oldContent = this.#contentCache.get(filePath) || '';
@@ -240,7 +240,7 @@ function isBinaryFile(buffer: Uint8Array | undefined) {
 
 /**
  * Converts a `Uint8Array` into a Node.js `Buffer` by copying the prototype.
- * The goal is to  avoid expensive copies. It does create a new typed array
+ * The goal is to avoid expensive copies. It does create a new typed array
  * but that's generally cheap as long as it uses the same underlying
  * array buffer.
  */
