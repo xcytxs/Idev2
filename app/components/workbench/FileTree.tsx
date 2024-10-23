@@ -5,7 +5,7 @@ import { createScopedLogger, renderLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_PADDING_LEFT = 8;
+const NODE_PADDING_LEFT = 16; // Adjusted padding for VSCode-like appearance
 const DEFAULT_HIDDEN_FILES = [/\/node_modules\//, /\/\.next/, /\/\.astro/];
 
 interface Props {
@@ -92,7 +92,7 @@ export const FileTree = memo(
     };
 
     return (
-      <div className={className}>
+      <div className={classNames('py-1', className)}>
         {filteredFileList.map((item) => 
           item.kind === 'folder' ? (
             <Folder
@@ -100,7 +100,10 @@ export const FileTree = memo(
               folder={item}
               collapsed={collapsedFolders.has(item.fullPath)}
               selected={allowFolderSelection && item.fullPath === selectedFile}
-              onClick={() => toggleCollapseState(item.fullPath)}
+              onClick={() => {
+                toggleCollapseState(item.fullPath);
+                if (allowFolderSelection) onFileSelect?.(item.fullPath);
+              }}
               hoverClassName={hoverClassName}
             />
           ) : (
@@ -133,7 +136,7 @@ function Folder({ folder: { depth, name }, collapsed, selected = false, onClick,
   const folderIcon = getFileIcon(name, true, !collapsed);
   return (
     <NodeButton
-      className={classNames('group', {
+      className={classNames('group transition-colors duration-75', {
         [`bg-transparent text-bolt-elements-item-contentDefault ${hoverClassName}`]: !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
@@ -158,7 +161,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
   const fileIcon = getFileIcon(name, false);
   return (
     <NodeButton
-      className={classNames('group', {
+      className={classNames('group transition-colors duration-75', {
         [`bg-transparent ${hoverClassName} text-bolt-elements-item-contentDefault`]: !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
@@ -172,7 +175,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         })}
       >
         <div className="flex-1 truncate pr-2">{name}</div>
-        {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
+        {unsavedChanges && <span className="i-ph:circle-fill scale-75 shrink-0 text-bolt-elements-item-contentAccent" />}
       </div>
     </NodeButton>
   );
@@ -244,6 +247,31 @@ function getFileIcon(fileName: string, isFolder: boolean, isFolderOpen?: boolean
     otf: 'i-mdi:font-awesome text-red-300',
     woff: 'i-mdi:font-awesome text-red-300',
     woff2: 'i-mdi:font-awesome text-red-300',
+    astro: 'i-mdi:rocket-launch text-orange-500',
+    vue: 'i-mdi:vuejs text-green-400',
+    svelte: 'i-mdi:language-svelte text-red-500',
+    go: 'i-mdi:language-go text-blue-400',
+    rs: 'i-mdi:language-rust text-orange-600',
+    java: 'i-mdi:language-java text-red-400',
+    kt: 'i-mdi:language-kotlin text-purple-500',
+    swift: 'i-mdi:language-swift text-orange-500',
+    c: 'i-mdi:language-c text-blue-500',
+    cpp: 'i-mdi:language-cpp text-blue-600',
+    cs: 'i-mdi:language-csharp text-green-600',
+    'docker-compose.yml': 'i-mdi:docker text-blue-400',
+    dockerfile: 'i-mdi:docker text-blue-400',
+    graphql: 'i-mdi:graphql text-pink-600',
+    sql: 'i-mdi:database text-blue-400',
+    toml: 'i-mdi:file-code-outline text-gray-500',
+    'tsconfig.json': 'i-mdi:language-typescript text-blue-600',
+    'babel.config.js': 'i-mdi:babel text-yellow-400',
+    'rollup.config.js': 'i-mdi:rollup text-red-400',
+    'vite.config.js': 'i-mdi:vite text-purple-500',
+    'next.config.js': 'i-mdi:next text-black',
+    'nuxt.config.js': 'i-mdi:nuxt text-green-500',
+    'angular.json': 'i-mdi:angular text-red-600',
+    'tailwind.config.js': 'i-mdi:tailwind text-teal-400',
+    'postcss.config.js': 'i-mdi:postcss text-red-500',
   };
 
   return iconMap[extension || ''] || 'i-mdi:file-outline text-gray-400';
@@ -261,14 +289,14 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
   return (
     <button
       className={classNames(
-        'flex items-center gap-1.5 w-full pr-2 border-2 border-transparent text-faded py-0.5',
+        'flex items-center gap-2 w-full pr-2 text-left py-[3px] hover:bg-bolt-elements-item-backgroundHover',
         className,
       )}
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      style={{ paddingLeft: `${depth * NODE_PADDING_LEFT}px` }}
       onClick={onClick}
     >
-      <div className={classNames('scale-100 shrink-0', iconClasses)}></div>
-      <div className="truncate w-full text-left">{children}</div>
+      <div className={classNames('scale-90 shrink-0', iconClasses)}></div>
+      <div className="truncate w-full text-sm">{children}</div>
     </button>
   );
 }
@@ -354,19 +382,6 @@ function isHiddenFile(filePath: string, fileName: string, hiddenFiles: Array<str
   );
 }
 
-/**
- * Sorts the given list of nodes into a tree structure (still a flat list).
- *
- * This function organizes the nodes into a hierarchical structure based on their paths,
- * with folders appearing before files and all items sorted alphabetically within their level.
- *
- * @note This function mutates the given `nodeList` array for performance reasons.
- *
- * @param rootFolder - The path of the root folder to start the sorting from.
- * @param nodeList - The list of nodes to be sorted.
- *
- * @returns A new array of nodes sorted in depth-first order.
- */
 function sortFileList(rootFolder: string, nodeList: Node[], hideRoot: boolean): Node[] {
   logger.trace('sortFileList');
 
