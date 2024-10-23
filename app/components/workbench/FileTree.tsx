@@ -19,6 +19,7 @@ interface Props {
   hiddenFiles?: Array<string | RegExp>;
   unsavedFiles?: Set<string>;
   className?: string;
+  hoverClassName?: string;
 }
 
 export const FileTree = memo(
@@ -33,6 +34,7 @@ export const FileTree = memo(
     hiddenFiles,
     className,
     unsavedFiles,
+    hoverClassName,
   }: Props) => {
     renderLogger.trace('FileTree');
 
@@ -111,39 +113,31 @@ export const FileTree = memo(
     };
 
     return (
-      <div className={classNames('text-sm', className)}>
-        {filteredFileList.map((fileOrFolder) => {
-          switch (fileOrFolder.kind) {
-            case 'file': {
-              return (
-                <File
-                  key={fileOrFolder.id}
-                  selected={selectedFile === fileOrFolder.fullPath}
-                  file={fileOrFolder}
-                  unsavedChanges={unsavedFiles?.has(fileOrFolder.fullPath)}
-                  onClick={() => {
-                    onFileSelect?.(fileOrFolder.fullPath);
-                  }}
-                />
-              );
-            }
-            case 'folder': {
-              return (
-                <Folder
-                  key={fileOrFolder.id}
-                  folder={fileOrFolder}
-                  selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
-                  collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
-                  onClick={() => {
-                    toggleCollapseState(fileOrFolder.fullPath);
-                  }}
-                />
-              );
-            }
-            default: {
-              return undefined;
-            }
+      <div className={className}>
+        {filteredFileList.map((item) => {
+          if (item.kind === 'folder') {
+            return (
+              <Folder
+                key={item.fullPath}
+                folder={item}
+                collapsed={collapsedFolders.has(item.fullPath)}
+                selected={allowFolderSelection && item.fullPath === selectedFile}
+                onClick={() => toggleCollapseState(item.fullPath)}
+                hoverClassName={hoverClassName}
+              />
+            );
           }
+
+          return (
+            <File
+              key={item.fullPath}
+              file={item}
+              selected={item.fullPath === selectedFile}
+              unsavedChanges={unsavedFiles?.has(item.fullPath)}
+              onClick={() => onFileSelect?.(item.fullPath)}
+              hoverClassName={hoverClassName}
+            />
+          );
         })}
       </div>
     );
@@ -157,15 +151,15 @@ interface FolderProps {
   collapsed: boolean;
   selected?: boolean;
   onClick: () => void;
+  hoverClassName?: string;
 }
 
-function Folder({ folder: { depth, name }, collapsed, selected = false, onClick }: FolderProps) {
+function Folder({ folder: { depth, name }, collapsed, selected = false, onClick, hoverClassName }: FolderProps & { hoverClassName?: string }) {
   const folderIcon = getFileIcon(name, true, !collapsed);
   return (
     <NodeButton
       className={classNames('group', {
-        'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
-          !selected,
+        [`bg-transparent text-bolt-elements-item-contentDefault ${hoverClassName}`]: !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
@@ -182,14 +176,15 @@ interface FileProps {
   selected: boolean;
   unsavedChanges?: boolean;
   onClick: () => void;
+  hoverClassName?: string;
 }
 
-function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
+function File({ file: { depth, name }, onClick, selected, unsavedChanges = false, hoverClassName }: FileProps & { hoverClassName?: string }) {
   const fileIcon = getFileIcon(name, false);
   return (
     <NodeButton
       className={classNames('group', {
-        'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault': !selected,
+        [`bg-transparent ${hoverClassName} text-bolt-elements-item-contentDefault`]: !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
@@ -364,7 +359,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
         className,
       )}
       style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
-      onClick={() => onClick?.()}
+      onClick={onClick}
     >
       <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
       <div className="truncate w-full text-left">{children}</div>

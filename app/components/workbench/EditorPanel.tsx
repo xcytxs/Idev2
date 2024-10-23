@@ -140,6 +140,7 @@ export const EditorPanel = memo(
                   rootFolder={WORK_DIR}
                   selectedFile={selectedFile}
                   onFileSelect={onFileSelect}
+                  hoverClassName="hover:bg-bolt-elements-background-depth-1 transition-colors duration-200"
                 />
               </div>
             </Panel>
@@ -151,11 +152,17 @@ export const EditorPanel = memo(
                     <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
                     {activeFileUnsaved && (
                       <div className="flex gap-1 ml-auto -mr-1.5">
-                        <PanelHeaderButton onClick={onFileSave}>
+                        <PanelHeaderButton
+                          onClick={onFileSave}
+                          className="hover:bg-bolt-elements-background-depth-1 transition-colors duration-200"
+                        >
                           <div className="i-ph:floppy-disk-duotone" />
                           Save
                         </PanelHeaderButton>
-                        <PanelHeaderButton onClick={onFileReset}>
+                        <PanelHeaderButton
+                          onClick={onFileReset}
+                          className="hover:bg-bolt-elements-background-depth-1 transition-colors duration-200"
+                        >
                           <div className="i-ph:clock-counter-clockwise-duotone" />
                           Reset
                         </PanelHeaderButton>
@@ -206,10 +213,10 @@ export const EditorPanel = memo(
                     <button
                       key={index}
                       className={classNames(
-                        'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                        'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full transition-colors duration-200',
                         {
                           'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
-                          'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                          'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground hover:text-bolt-elements-textPrimary':
                             !isActive,
                         },
                       )}
@@ -220,9 +227,16 @@ export const EditorPanel = memo(
                     </button>
                   );
                 })}
-                {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
+                {terminalCount < MAX_TERMINALS && (
+                  <IconButton
+                    icon="i-ph:plus"
+                    size="md"
+                    onClick={addTerminal}
+                    className="hover:bg-bolt-elements-background-depth-1 transition-colors duration-200"
+                  />
+                )}
                 <IconButton
-                  className="ml-auto"
+                  className="ml-auto hover:bg-bolt-elements-background-depth-1 transition-colors duration-200"
                   icon="i-ph:caret-down"
                   title="Close"
                   size="md"
