@@ -40,95 +40,70 @@ export const FileTree = memo(
 
     const computedHiddenFiles = useMemo(() => [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])], [hiddenFiles]);
 
-    const fileList = useMemo(() => {
-      return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
-    }, [files, rootFolder, hideRoot, computedHiddenFiles]);
+    const fileList = useMemo(() => buildFileList(files, rootFolder, hideRoot, computedHiddenFiles), [files, rootFolder, hideRoot, computedHiddenFiles]);
 
-    const [collapsedFolders, setCollapsedFolders] = useState(() => {
-      return collapsed
-        ? new Set(fileList.filter((item) => item.kind === 'folder').map((item) => item.fullPath))
-        : new Set<string>();
-    });
+    const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => 
+      collapsed ? new Set(fileList.filter((item): item is FolderNode => item.kind === 'folder').map(item => item.fullPath)) : new Set()
+    );
 
     useEffect(() => {
       if (collapsed) {
-        setCollapsedFolders(new Set(fileList.filter((item) => item.kind === 'folder').map((item) => item.fullPath)));
-        return;
-      }
-
-      setCollapsedFolders((prevCollapsed) => {
-        const newCollapsed = new Set<string>();
-
-        for (const folder of fileList) {
-          if (folder.kind === 'folder' && prevCollapsed.has(folder.fullPath)) {
-            newCollapsed.add(folder.fullPath);
+        setCollapsedFolders(new Set(fileList.filter((item): item is FolderNode => item.kind === 'folder').map(item => item.fullPath)));
+      } else {
+        setCollapsedFolders(prevCollapsed => {
+          const newCollapsed = new Set<string>();
+          for (const folder of fileList) {
+            if (folder.kind === 'folder' && prevCollapsed.has(folder.fullPath)) {
+              newCollapsed.add(folder.fullPath);
+            }
           }
-        }
-
-        return newCollapsed;
-      });
+          return newCollapsed;
+        });
+      }
     }, [fileList, collapsed]);
 
     const filteredFileList = useMemo(() => {
-      const list = [];
-
+      const list: Node[] = [];
       let lastDepth = Number.MAX_SAFE_INTEGER;
 
-      for (const fileOrFolder of fileList) {
-        const depth = fileOrFolder.depth;
-
-        // if the depth is equal we reached the end of the collaped group
-        if (lastDepth === depth) {
+      for (const node of fileList) {
+        if (lastDepth === node.depth) {
           lastDepth = Number.MAX_SAFE_INTEGER;
         }
 
-        // ignore collapsed folders
-        if (collapsedFolders.has(fileOrFolder.fullPath)) {
-          lastDepth = Math.min(lastDepth, depth);
+        if (node.kind === 'folder' && collapsedFolders.has(node.fullPath)) {
+          lastDepth = Math.min(lastDepth, node.depth);
         }
 
-        // ignore files and folders below the last collapsed folder
-        if (lastDepth < depth) {
-          continue;
-        }
+        if (lastDepth < node.depth) continue;
 
-        list.push(fileOrFolder);
+        list.push(node);
       }
 
       return list;
     }, [fileList, collapsedFolders]);
 
     const toggleCollapseState = (fullPath: string) => {
-      setCollapsedFolders((prevSet) => {
+      setCollapsedFolders(prevSet => {
         const newSet = new Set(prevSet);
-
-        if (newSet.has(fullPath)) {
-          newSet.delete(fullPath);
-        } else {
-          newSet.add(fullPath);
-        }
-
+        newSet.has(fullPath) ? newSet.delete(fullPath) : newSet.add(fullPath);
         return newSet;
       });
     };
 
     return (
       <div className={className}>
-        {filteredFileList.map((item) => {
-          if (item.kind === 'folder') {
-            return (
-              <Folder
-                key={item.fullPath}
-                folder={item}
-                collapsed={collapsedFolders.has(item.fullPath)}
-                selected={allowFolderSelection && item.fullPath === selectedFile}
-                onClick={() => toggleCollapseState(item.fullPath)}
-                hoverClassName={hoverClassName}
-              />
-            );
-          }
-
-          return (
+        {filteredFileList.map((item) => 
+          item.kind === 'folder' ? (
+            <Folder
+              key={item.fullPath}
+              folder={item}
+              collapsed={collapsedFolders.has(item.fullPath)}
+              selected={allowFolderSelection && item.fullPath === selectedFile}
+              onClick={() => toggleCollapseState(item.fullPath)}
+              hoverClassName={hoverClassName}
+            />
+          ) : (
             <File
               key={item.fullPath}
               file={item}
@@ -137,8 +112,8 @@ export const FileTree = memo(
               onClick={() => onFileSelect?.(item.fullPath)}
               hoverClassName={hoverClassName}
             />
-          );
-        })}
+          )
+        )}
       </div>
     );
   },
@@ -154,7 +129,7 @@ interface FolderProps {
   hoverClassName?: string;
 }
 
-function Folder({ folder: { depth, name }, collapsed, selected = false, onClick, hoverClassName }: FolderProps & { hoverClassName?: string }) {
+function Folder({ folder: { depth, name }, collapsed, selected = false, onClick, hoverClassName }: FolderProps) {
   const folderIcon = getFileIcon(name, true, !collapsed);
   return (
     <NodeButton
@@ -179,7 +154,7 @@ interface FileProps {
   hoverClassName?: string;
 }
 
-function File({ file: { depth, name }, onClick, selected, unsavedChanges = false, hoverClassName }: FileProps & { hoverClassName?: string }) {
+function File({ file: { depth, name }, onClick, selected, unsavedChanges = false, hoverClassName }: FileProps) {
   const fileIcon = getFileIcon(name, false);
   return (
     <NodeButton
@@ -207,140 +182,71 @@ function getFileIcon(fileName: string, isFolder: boolean, isFolderOpen?: boolean
   if (isFolder) {
     const folderName = fileName.toLowerCase();
     const icon = isFolderOpen ? 'i-mdi:folder-open' : 'i-mdi:folder';
-    let color = 'text-yellow-500';
+    const colorMap: Record<string, string> = {
+      src: 'text-blue-500',
+      components: 'text-green-500',
+      pages: 'text-purple-500',
+      assets: 'text-yellow-500',
+      styles: 'text-pink-500',
+      css: 'text-pink-500',
+      js: 'text-yellow-400',
+      javascript: 'text-yellow-400',
+      ts: 'text-blue-600',
+      typescript: 'text-blue-600',
+      test: 'text-red-500',
+      tests: 'text-red-500',
+      __tests__: 'text-red-500',
+      public: 'text-green-600',
+      docs: 'text-blue-400',
+      documentation: 'text-blue-400',
+      node_modules: 'text-gray-500',
+      build: 'text-orange-500',
+      dist: 'text-orange-500',
+    };
     
-    switch (folderName) {
-      case 'src':
-        color = 'text-blue-500';
-        break;
-      case 'components':
-        color = 'text-green-500';
-        break;
-      case 'pages':
-        color = 'text-purple-500';
-        break;
-      case 'assets':
-        color = 'text-yellow-500';
-        break;
-      case 'styles':
-      case 'css':
-        color = 'text-pink-500';
-        break;
-      case 'js':
-      case 'javascript':
-        color = 'text-yellow-400';
-        break;
-      case 'ts':
-      case 'typescript':
-        color = 'text-blue-600';
-        break;
-      case 'test':
-      case 'tests':
-      case '__tests__':
-        color = 'text-red-500';
-        break;
-      case 'public':
-        color = 'text-green-600';
-        break;
-      case 'docs':
-      case 'documentation':
-        color = 'text-blue-400';
-        break;
-      case 'node_modules':
-        color = 'text-gray-500';
-        break;
-      case 'build':
-      case 'dist':
-        color = 'text-orange-500';
-        break;
-    }
-
+    const color = colorMap[folderName] || 'text-yellow-500';
     return `${icon} ${color}`;
   }
 
-  // The rest of the function for file icons remains the same
   const extension = fileName.split('.').pop()?.toLowerCase();
-  switch (extension) {
-    // JavaScript and TypeScript
-    case 'js':
-      return 'i-mdi:language-javascript text-yellow-400';
-    case 'jsx':
-      return 'i-mdi:react text-blue-400';
-    case 'ts':
-      return 'i-mdi:language-typescript text-blue-600';
-    case 'tsx':
-      return 'i-mdi:react text-blue-500';
-    
-    // Styling
-    case 'css':
-      return 'i-mdi:language-css3 text-blue-500';
-    case 'scss':
-    case 'sass':
-      return 'i-mdi:sass text-pink-400';
-    case 'less':
-      return 'i-mdi:language-css3 text-indigo-400';
-    
-    // Markup and Documentation
-    case 'html':
-      return 'i-mdi:language-html5 text-orange-500';
-    case 'md':
-    case 'markdown':
-      return 'i-mdi:language-markdown text-blue-300';
-    case 'svg':
-      return 'i-mdi:svg text-orange-400';
-    
-    // Data formats
-    case 'json':
-      return 'i-mdi:code-json text-yellow-300';
-    case 'yaml':
-    case 'yml':
-      return 'i-mdi:file-code-outline text-purple-400';
-    
-    // Server-side languages
-    case 'php':
-      return 'i-mdi:language-php text-indigo-400';
-    case 'py':
-      return 'i-mdi:language-python text-blue-500';
-    case 'rb':
-      return 'i-mdi:language-ruby text-red-500';
-    
-    // Build and package management
-    case 'webpack.config.js':
-      return 'i-mdi:webpack text-blue-300';
-    case 'package.json':
-      return 'i-mdi:nodejs text-green-600';
-    case 'yarn.lock':
-      return 'i-mdi:package-variant-closed text-blue-400';
-    
-    // Configuration files
-    case 'env':
-      return 'i-mdi:file-cog-outline text-yellow-600';
-    case 'gitignore':
-      return 'i-mdi:git text-orange-600';
-    case 'eslintrc':
-    case 'eslintignore':
-      return 'i-mdi:eslint text-purple-500';
-    case 'prettierrc':
-      return 'i-mdi:code-tags-check text-green-400';
-    
-    // Images
-    case 'png':
-    case 'jpg':
-    case 'jpeg':
-    case 'gif':
-      return 'i-mdi:file-image-outline text-purple-400';
-    
-    // Fonts
-    case 'ttf':
-    case 'otf':
-    case 'woff':
-    case 'woff2':
-      return 'i-mdi:font-awesome text-red-300';
-    
-    // Default
-    default:
-      return 'i-mdi:file-outline text-gray-400';
-  }
+  const iconMap: Record<string, string> = {
+    js: 'i-mdi:language-javascript text-yellow-400',
+    jsx: 'i-mdi:react text-blue-400',
+    ts: 'i-mdi:language-typescript text-blue-600',
+    tsx: 'i-mdi:react text-blue-500',
+    css: 'i-mdi:language-css3 text-blue-500',
+    scss: 'i-mdi:sass text-pink-400',
+    sass: 'i-mdi:sass text-pink-400',
+    less: 'i-mdi:language-css3 text-indigo-400',
+    html: 'i-mdi:language-html5 text-orange-500',
+    md: 'i-mdi:language-markdown text-blue-300',
+    markdown: 'i-mdi:language-markdown text-blue-300',
+    svg: 'i-mdi:svg text-orange-400',
+    json: 'i-mdi:code-json text-yellow-300',
+    yaml: 'i-mdi:file-code-outline text-purple-400',
+    yml: 'i-mdi:file-code-outline text-purple-400',
+    php: 'i-mdi:language-php text-indigo-400',
+    py: 'i-mdi:language-python text-blue-500',
+    rb: 'i-mdi:language-ruby text-red-500',
+    'webpack.config.js': 'i-mdi:webpack text-blue-300',
+    'package.json': 'i-mdi:nodejs text-green-600',
+    'yarn.lock': 'i-mdi:package-variant-closed text-blue-400',
+    env: 'i-mdi:file-cog-outline text-yellow-600',
+    gitignore: 'i-mdi:git text-orange-600',
+    eslintrc: 'i-mdi:eslint text-purple-500',
+    eslintignore: 'i-mdi:eslint text-purple-500',
+    prettierrc: 'i-mdi:code-tags-check text-green-400',
+    png: 'i-mdi:file-image-outline text-purple-400',
+    jpg: 'i-mdi:file-image-outline text-purple-400',
+    jpeg: 'i-mdi:file-image-outline text-purple-400',
+    gif: 'i-mdi:file-image-outline text-purple-400',
+    ttf: 'i-mdi:font-awesome text-red-300',
+    otf: 'i-mdi:font-awesome text-red-300',
+    woff: 'i-mdi:font-awesome text-red-300',
+    woff2: 'i-mdi:font-awesome text-red-300',
+  };
+
+  return iconMap[extension || ''] || 'i-mdi:file-outline text-gray-400';
 }
 
 interface ButtonProps {
@@ -361,7 +267,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
       style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
       onClick={onClick}
     >
-      <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
+      <div className={classNames('scale-100 shrink-0', iconClasses)}></div>
       <div className="truncate w-full text-left">{children}</div>
     </button>
   );
@@ -401,7 +307,7 @@ function buildFileList(
   }
 
   for (const [filePath, dirent] of Object.entries(files)) {
-    const segments = filePath.split('/').filter((segment) => segment);
+    const segments = filePath.split('/').filter(Boolean);
     const fileName = segments.at(-1);
 
     if (!fileName || isHiddenFile(filePath, fileName, hiddenFiles)) {
@@ -410,54 +316,42 @@ function buildFileList(
 
     let currentPath = '';
 
-    let i = 0;
-    let depth = 0;
+    segments.forEach((name, index) => {
+      currentPath += `/${name}`;
+      const depth = index + defaultDepth;
 
-    while (i < segments.length) {
-      const name = segments[i];
-      const fullPath = (currentPath += `/${name}`);
-
-      if (!fullPath.startsWith(rootFolder) || (hideRoot && fullPath === rootFolder)) {
-        i++;
-        continue;
+      if (!currentPath.startsWith(rootFolder) || (hideRoot && currentPath === rootFolder)) {
+        return;
       }
 
-      if (i === segments.length - 1 && dirent?.type === 'file') {
+      if (index === segments.length - 1 && dirent?.type === 'file') {
         fileList.push({
           kind: 'file',
           id: fileList.length,
           name,
-          fullPath,
-          depth: depth + defaultDepth,
+          fullPath: currentPath,
+          depth,
         });
-      } else if (!folderPaths.has(fullPath)) {
-        folderPaths.add(fullPath);
-
+      } else if (!folderPaths.has(currentPath)) {
+        folderPaths.add(currentPath);
         fileList.push({
           kind: 'folder',
           id: fileList.length,
           name,
-          fullPath,
-          depth: depth + defaultDepth,
+          fullPath: currentPath,
+          depth,
         });
       }
-
-      i++;
-      depth++;
-    }
+    });
   }
 
   return sortFileList(rootFolder, fileList, hideRoot);
 }
 
 function isHiddenFile(filePath: string, fileName: string, hiddenFiles: Array<string | RegExp>) {
-  return hiddenFiles.some((pathOrRegex) => {
-    if (typeof pathOrRegex === 'string') {
-      return fileName === pathOrRegex;
-    }
-
-    return pathOrRegex.test(filePath);
-  });
+  return hiddenFiles.some((pathOrRegex) => 
+    typeof pathOrRegex === 'string' ? fileName === pathOrRegex : pathOrRegex.test(filePath)
+  );
 }
 
 /**
@@ -539,4 +433,3 @@ function compareNodes(a: Node, b: Node): number {
 
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 }
-
