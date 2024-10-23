@@ -160,6 +160,7 @@ interface FolderProps {
 }
 
 function Folder({ folder: { depth, name }, collapsed, selected = false, onClick }: FolderProps) {
+  const folderIcon = getFileIcon(name, true, !collapsed);
   return (
     <NodeButton
       className={classNames('group', {
@@ -168,10 +169,7 @@ function Folder({ folder: { depth, name }, collapsed, selected = false, onClick 
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames({
-        'i-ph:caret-right scale-98': collapsed,
-        'i-ph:caret-down scale-98': !collapsed,
-      })}
+      iconClasses={folderIcon}
       onClick={onClick}
     >
       {name}
@@ -187,6 +185,7 @@ interface FileProps {
 }
 
 function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
+  const fileIcon = getFileIcon(name, false);
   return (
     <NodeButton
       className={classNames('group', {
@@ -194,9 +193,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames('i-ph:file-duotone scale-98', {
-        'group-hover:text-bolt-elements-item-contentActive': !selected,
-      })}
+      iconClasses={fileIcon}
       onClick={onClick}
     >
       <div
@@ -209,6 +206,146 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
       </div>
     </NodeButton>
   );
+}
+
+function getFileIcon(fileName: string, isFolder: boolean, isFolderOpen?: boolean): string {
+  if (isFolder) {
+    const folderName = fileName.toLowerCase();
+    const icon = isFolderOpen ? 'i-mdi:folder-open' : 'i-mdi:folder';
+    let color = 'text-yellow-500';
+    
+    switch (folderName) {
+      case 'src':
+        color = 'text-blue-500';
+        break;
+      case 'components':
+        color = 'text-green-500';
+        break;
+      case 'pages':
+        color = 'text-purple-500';
+        break;
+      case 'assets':
+        color = 'text-yellow-500';
+        break;
+      case 'styles':
+      case 'css':
+        color = 'text-pink-500';
+        break;
+      case 'js':
+      case 'javascript':
+        color = 'text-yellow-400';
+        break;
+      case 'ts':
+      case 'typescript':
+        color = 'text-blue-600';
+        break;
+      case 'test':
+      case 'tests':
+      case '__tests__':
+        color = 'text-red-500';
+        break;
+      case 'public':
+        color = 'text-green-600';
+        break;
+      case 'docs':
+      case 'documentation':
+        color = 'text-blue-400';
+        break;
+      case 'node_modules':
+        color = 'text-gray-500';
+        break;
+      case 'build':
+      case 'dist':
+        color = 'text-orange-500';
+        break;
+    }
+
+    return `${icon} ${color}`;
+  }
+
+  // The rest of the function for file icons remains the same
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    // JavaScript and TypeScript
+    case 'js':
+      return 'i-mdi:language-javascript text-yellow-400';
+    case 'jsx':
+      return 'i-mdi:react text-blue-400';
+    case 'ts':
+      return 'i-mdi:language-typescript text-blue-600';
+    case 'tsx':
+      return 'i-mdi:react text-blue-500';
+    
+    // Styling
+    case 'css':
+      return 'i-mdi:language-css3 text-blue-500';
+    case 'scss':
+    case 'sass':
+      return 'i-mdi:sass text-pink-400';
+    case 'less':
+      return 'i-mdi:language-css3 text-indigo-400';
+    
+    // Markup and Documentation
+    case 'html':
+      return 'i-mdi:language-html5 text-orange-500';
+    case 'md':
+    case 'markdown':
+      return 'i-mdi:language-markdown text-blue-300';
+    case 'svg':
+      return 'i-mdi:svg text-orange-400';
+    
+    // Data formats
+    case 'json':
+      return 'i-mdi:code-json text-yellow-300';
+    case 'yaml':
+    case 'yml':
+      return 'i-mdi:file-code-outline text-purple-400';
+    
+    // Server-side languages
+    case 'php':
+      return 'i-mdi:language-php text-indigo-400';
+    case 'py':
+      return 'i-mdi:language-python text-blue-500';
+    case 'rb':
+      return 'i-mdi:language-ruby text-red-500';
+    
+    // Build and package management
+    case 'webpack.config.js':
+      return 'i-mdi:webpack text-blue-300';
+    case 'package.json':
+      return 'i-mdi:nodejs text-green-600';
+    case 'yarn.lock':
+      return 'i-mdi:package-variant-closed text-blue-400';
+    
+    // Configuration files
+    case 'env':
+      return 'i-mdi:file-cog-outline text-yellow-600';
+    case 'gitignore':
+      return 'i-mdi:git text-orange-600';
+    case 'eslintrc':
+    case 'eslintignore':
+      return 'i-mdi:eslint text-purple-500';
+    case 'prettierrc':
+      return 'i-mdi:code-tags-check text-green-400';
+    
+    // Images
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+      return 'i-mdi:file-image-outline text-purple-400';
+    
+    // Fonts
+    case 'ttf':
+    case 'otf':
+    case 'woff':
+    case 'woff2':
+      return 'i-mdi:font-awesome text-red-300';
+    
+    // Default
+    default:
+      return 'i-mdi:file-outline text-gray-400';
+  }
 }
 
 interface ButtonProps {
@@ -407,3 +544,4 @@ function compareNodes(a: Node, b: Node): number {
 
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 }
+

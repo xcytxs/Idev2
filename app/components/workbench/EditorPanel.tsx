@@ -123,17 +123,17 @@ export const EditorPanel = memo(
     };
 
     return (
-      <PanelGroup direction="vertical">
+      <PanelGroup direction="vertical" className="h-full">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
-          <PanelGroup direction="horizontal">
-            <Panel defaultSize={20} minSize={10} collapsible>
-              <div className="flex flex-col border-r border-bolt-elements-borderColor h-full">
-                <PanelHeader>
-                  <div className="i-ph:tree-structure-duotone shrink-0" />
+          <PanelGroup direction="horizontal" className="h-full">
+            <Panel defaultSize={20} minSize={10} collapsible className="border-r border-bolt-elements-borderColor">
+              <div className="flex flex-col h-full">
+                <PanelHeader className="p-4">
+                  <div className="i-ph:tree-structure-duotone shrink-0 mr-2" />
                   Files
                 </PanelHeader>
                 <FileTree
-                  className="h-full"
+                  className="flex-1 overflow-auto p-2"
                   files={files}
                   hideRoot
                   unsavedFiles={unsavedFiles}
@@ -143,7 +143,7 @@ export const EditorPanel = memo(
                 />
               </div>
             </Panel>
-            <PanelResizeHandle />
+            <PanelResizeHandle className="w-1 hover:bg-bolt-elements-borderColorActive transition-colors" />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
