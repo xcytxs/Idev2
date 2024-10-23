@@ -2,7 +2,6 @@ import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
 import { Buffer } from 'node:buffer';
-import * as nodePath from 'node:path';
 import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
@@ -58,9 +57,17 @@ export class FilesStore {
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
 
+    this.#contentCache = new Map();
+    this.#saveDebounce = new Map();
+
     if (import.meta.hot) {
       import.meta.hot.data.files = this.files;
       import.meta.hot.data.modifiedFiles = this.#modifiedFiles;
+      import.meta.hot.dispose(() => {
+        for (const debounceFn of this.#saveDebounce.values()) {
+          debounceFn.cancel();
+        }
+      });
     }
 
     this.#init();
@@ -84,62 +91,46 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
-  async saveFile(filePath: string, content: string) {
-    const webcontainer = await this.#webcontainer;
+  async setFileContent(path: string, content: string) {
+    const sanitizedPath = this.#sanitizePath(path);
+    const file = this.files.get()[sanitizedPath];
 
-    try {
-      const relativePath = nodePath.relative(webcontainer.workdir, filePath);
-
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${filePath}'`);
-      }
-
-      const oldContent = this.#contentCache.get(filePath) || '';
-
-      if (this.#hasChanges(oldContent, content)) {
-        const debouncedSave = this.#saveDebounce.get(filePath) || this.#createDebouncedSave(filePath);
-        debouncedSave(content);
-      } else {
-        logger.info('No changes detected, skipping file write');
-      }
-
-      // Update the file in memory immediately
-      this.files.setKey(filePath, { type: 'file', content, isBinary: false });
-      this.#contentCache.set(filePath, content);
-
-    } catch (error) {
-      logger.error('Failed to update file content\n\n', error);
-      throw error;
+    if (!file || file.type !== 'file') {
+      throw new Error(`File not found: ${sanitizedPath}`);
     }
-  }
 
-  #hasChanges(oldContent: string, newContent: string): boolean {
-    const changes = diff.diffLines(oldContent, newContent);
-    return changes.some(change => change.added || change.removed);
-  }
+    const cachedContent = this.#contentCache.get(sanitizedPath);
 
-  #createDebouncedSave(filePath: string) {
-    const debouncedSave = debounce(async (content: string) => {
-      const webcontainer = await this.#webcontainer;
-      const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+    if (cachedContent === content) {
+      return; // Content hasn't changed, no need to update
+    }
 
-      try {
-        await webcontainer.fs.writeFile(relativePath, content);
-        logger.info(`File ${filePath} updated`);
+    this.#contentCache.set(sanitizedPath, content);
 
-        if (!this.#modifiedFiles.has(filePath)) {
-          const oldContent = this.getFile(filePath)?.content;
-          if (oldContent) {
-            this.#modifiedFiles.set(filePath, oldContent);
+    if (!this.#saveDebounce.has(sanitizedPath)) {
+      this.#saveDebounce.set(
+        sanitizedPath,
+        debounce(async (path: string, content: string) => {
+          const webcontainer = await this.#webcontainer;
+          try {
+            const currentContent = await webcontainer.fs.readFile(path, 'utf-8');
+            
+            if (diff.diffChars(currentContent, content).length > 1) {
+              await webcontainer.fs.writeFile(path, content);
+              this.files.setKey(path, { ...file, content });
+              
+              if (!this.#modifiedFiles.has(path)) {
+                this.#modifiedFiles.set(path, currentContent);
+              }
+            }
+          } catch (error) {
+            logger.error(`Failed to update file ${path}\n\n`, error);
           }
-        }
-      } catch (error) {
-        logger.error(`Failed to write file ${filePath}\n\n`, error);
-      }
-    }, 500);
+        }, 500)
+      );
+    }
 
-    this.#saveDebounce.set(filePath, debouncedSave);
-    return debouncedSave;
+    this.#saveDebounce.get(sanitizedPath)!(sanitizedPath, content);
   }
 
   async #init() {
@@ -227,6 +218,10 @@ export class FilesStore {
       logger.error('Failed to decode file content', error);
       return '';
     }
+  }
+
+  #sanitizePath(path: string): string {
+    return path.replace(/\/+$/g, '');
   }
 }
 
