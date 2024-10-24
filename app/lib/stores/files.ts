@@ -553,6 +553,15 @@ export class FilesStore {
       debounceFn.cancel();
     }
   }
+
+  async saveFile(filePath: string, content: string) {
+    const file = this.getFile(filePath);
+    if (!file || file.type !== 'file') {
+      throw new FileNotFoundError(filePath);
+    }
+
+    await this.setFileContent(filePath, content);
+  }
 }
 
 function isBinaryFile(buffer: Uint8Array | undefined): boolean {
