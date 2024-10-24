@@ -31,25 +31,70 @@ type Dirent = File | Folder;
 
 export type FileMap = Record<string, Dirent | undefined>;
 
+// Error Categories enum for better error classification
+enum ErrorCategory {
+  PERMISSION = 'PERMISSION',
+  VALIDATION = 'VALIDATION',
+  RESOURCE = 'RESOURCE',
+  SYSTEM = 'SYSTEM',
+  NETWORK = 'NETWORK',
+  CORRUPTION = 'CORRUPTION'
+}
+
+// Base error class with additional context
 class FilesStoreError extends Error {
-  constructor(message: string) {
+  readonly category: ErrorCategory;
+  readonly timestamp: number;
+  readonly path?: string;
+  readonly operation?: string;
+
+  constructor(message: string, category: ErrorCategory, options?: {
+    path?: string;
+    operation?: string;
+    cause?: Error;
+  }) {
     super(message);
     this.name = 'FilesStoreError';
+    this.category = category;
+    this.timestamp = Date.now();
+    this.path = options?.path;
+    this.operation = options?.operation;
+    this.cause = options?.cause;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      category: this.category,
+      timestamp: this.timestamp,
+      path: this.path,
+      operation: this.operation,
+      cause: this.cause instanceof Error ? this.cause.message : this.cause
+    };
   }
 }
 
+// Enhanced error classes with better context
 class FileNotFoundError extends FilesStoreError {
   constructor(path: string) {
-    super(`File not found: ${path}`);
+    super(
+      `File not found: ${path}`, 
+      ErrorCategory.RESOURCE,
+      { path }
+    );
     this.name = 'FileNotFoundError';
   }
 }
 
 class FileOperationError extends FilesStoreError {
   constructor(operation: string, path: string, originalError: Error) {
-    super(`Failed to ${operation} file ${path}: ${originalError.message}`);
+    super(
+      `Failed to ${operation} file ${path}: ${originalError.message}`,
+      ErrorCategory.SYSTEM,
+      { path, operation, cause: originalError }
+    );
     this.name = 'FileOperationError';
-    this.cause = originalError;
   }
 }
 
@@ -62,36 +107,156 @@ class FileDecodeError extends FileOperationError {
 
 class FilePermissionError extends FilesStoreError {
   constructor(operation: string, path: string) {
-    super(`Permission denied: Cannot ${operation} file ${path}`);
+    super(
+      `Permission denied: Cannot ${operation} file ${path}`,
+      ErrorCategory.PERMISSION,
+      { path, operation }
+    );
     this.name = 'FilePermissionError';
   }
 }
 
 class FileSizeExceededError extends FilesStoreError {
   constructor(path: string, size: number, maxSize: number) {
-    super(`File size exceeded: ${path} (${size} bytes) exceeds maximum allowed size of ${maxSize} bytes`);
+    super(
+      `File size exceeded: ${path} (${size} bytes) exceeds maximum allowed size of ${maxSize} bytes`,
+      ErrorCategory.VALIDATION,
+      { path }
+    );
     this.name = 'FileSizeExceededError';
-  }
-}
-
-class FileAlreadyExistsError extends FilesStoreError {
-  constructor(path: string) {
-    super(`File already exists: ${path}`);
-    this.name = 'FileAlreadyExistsError';
   }
 }
 
 class InvalidFileNameError extends FilesStoreError {
   constructor(fileName: string) {
-    super(`Invalid file name: ${fileName}`);
+    super(
+      `Invalid file name: ${fileName}`,
+      ErrorCategory.VALIDATION,
+      { path: fileName }
+    );
     this.name = 'InvalidFileNameError';
   }
 }
 
-class FileWriteError extends FileOperationError {
-  constructor(path: string, originalError: Error) {
-    super('write', path, originalError);
-    this.name = 'FileWriteError';
+// Add retry information to network errors
+class NetworkError extends FilesStoreError {
+  readonly attemptsMade: number;
+  readonly maxAttempts: number;
+
+  constructor(operation: string, path: string, originalError: Error, attemptsMade: number, maxAttempts: number) {
+    super(
+      `Network error while ${operation} file ${path}: ${originalError.message}`,
+      ErrorCategory.NETWORK,
+      { path, operation, cause: originalError }
+    );
+    this.name = 'NetworkError';
+    this.attemptsMade = attemptsMade;
+    this.maxAttempts = maxAttempts;
+  }
+}
+
+// Enhanced quota error with size information
+class FileSystemQuotaExceededError extends FilesStoreError {
+  readonly currentUsage: number;
+  readonly quota: number;
+
+  constructor(path: string, currentUsage: number, quota: number) {
+    super(
+      `File system quota exceeded when trying to write file: ${path}. Usage: ${currentUsage}B/${quota}B`,
+      ErrorCategory.SYSTEM,
+      { path }
+    );
+    this.name = 'FileSystemQuotaExceededError';
+    this.currentUsage = currentUsage;
+    this.quota = quota;
+  }
+}
+
+class InvalidFileTypeError extends FilesStoreError {
+  constructor(path: string, expectedType: string, actualType: string) {
+    super(
+      `Invalid file type for ${path}: expected ${expectedType}, but got ${actualType}`,
+      ErrorCategory.VALIDATION,
+      { path }
+    );
+    this.name = 'InvalidFileTypeError';
+  }
+}
+
+class FileCorruptedError extends FilesStoreError {
+  constructor(path: string) {
+    super(
+      `File ${path} appears to be corrupted`,
+      ErrorCategory.CORRUPTION,
+      { path }
+    );
+    this.name = 'FileCorruptedError';
+  }
+}
+
+// Error handler utility
+class ErrorHandler {
+  static async retryOperation<T>(
+    operation: () => Promise<T>,
+    options: {
+      maxRetries: number;
+      retryDelay: number;
+      operationName: string;
+      path: string;
+    }
+  ): Promise<T> {
+    let retries = 0;
+    
+    while (true) {
+      try {
+        return await operation();
+      } catch (error) {
+        retries++;
+        
+        if (error instanceof Error) {
+          // Convert known error patterns
+          if (error.message.includes('permission denied')) {
+            throw new FilePermissionError('write', options.path);
+          }
+          
+          if (error.message.includes('network')) {
+            throw new NetworkError(
+              options.operationName,
+              options.path,
+              error,
+              retries,
+              options.maxRetries
+            );
+          }
+        }
+
+        if (retries >= options.maxRetries) {
+          throw new FileOperationError(options.operationName, options.path, error as Error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, options.retryDelay));
+      }
+    }
+  }
+
+  static handleFileOperation(error: Error, path: string, operation: string): never {
+    if (error instanceof FilesStoreError) {
+      throw error;
+    }
+
+    // Map common error patterns to specific errors
+    if (error.message.includes('ENOENT')) {
+      throw new FileNotFoundError(path);
+    }
+    if (error.message.includes('EACCES')) {
+      throw new FilePermissionError(operation, path);
+    }
+    if (error.message.includes('ENOSPC')) {
+      // You would need to implement getting actual usage and quota
+      throw new FileSystemQuotaExceededError(path, 0, 0);
+    }
+
+    throw new FileOperationError(operation, path, error);
   }
 }
 
@@ -99,6 +264,7 @@ export interface FilesStoreConfig {
   debounceTime?: number;
   maxRetries?: number;
   retryDelay?: number;
+  maxFileSize?: number;
 }
 
 export class FilesStore {
@@ -126,6 +292,7 @@ export class FilesStore {
       debounceTime: 500,
       maxRetries: 3,
       retryDelay: 1000,
+      maxFileSize: 1024 * 1024 * 10, // 10 MB default
       ...config,
     };
 
@@ -245,6 +412,13 @@ export class FilesStore {
 
     const isBinary = isBinaryFile(buffer);
     const content = isBinary ? '' : this.#decodeFileContent(buffer, path);
+    
+    // Check for invalid file type
+    const expectedType = path.endsWith('.txt') ? 'text' : 'unknown';
+    if (isBinary && expectedType === 'text') {
+      throw new InvalidFileTypeError(path, expectedType, 'binary');
+    }
+
     const metadata = {
       lastModified: Date.now(),
       size: buffer?.byteLength ?? 0,
@@ -263,10 +437,18 @@ export class FilesStore {
     }
 
     try {
-      return utf8TextDecoder.decode(buffer);
+      const content = utf8TextDecoder.decode(buffer);
+      // Check for potential corruption (e.g., if the content is not valid UTF-8)
+      if (content.includes('\uFFFD')) {
+        throw new FileCorruptedError(path || 'unknown');
+      }
+      return content;
     } catch (error) {
       logger.error('Failed to decode file content', error);
       if (path) {
+        if (error instanceof FileCorruptedError) {
+          throw error;
+        }
         throw new FileDecodeError(path, error as Error);
       }
       return '';
@@ -290,74 +472,55 @@ export class FilesStore {
   async #saveFile(path: string, content: string, file: File) {
     await this.#queueFileOperation(async () => {
       const webcontainer = await this.#webcontainer;
-      let retries = 0;
-      while (retries < this.#config.maxRetries!) {
-        try {
-          const currentContent = await this.#retryOperation(() => webcontainer.fs.readFile(path, 'utf-8'));
-          
-          const newSize = Buffer.byteLength(content);
-          const maxSize = 1024 * 1024 * 10; // 10 MB, for example
-          if (newSize > maxSize) {
-            throw new FileSizeExceededError(path, newSize, maxSize);
+      
+      try {
+        const currentContent = await ErrorHandler.retryOperation(
+          () => webcontainer.fs.readFile(path, 'utf-8'),
+          {
+            maxRetries: this.#config.maxRetries!,
+            retryDelay: this.#config.retryDelay!,
+            operationName: 'read',
+            path
           }
+        );
 
-          if (diff.diffChars(currentContent, content).length > 1) {
-            try {
-              await this.#retryOperation(() => webcontainer.fs.writeFile(path, content));
-            } catch (error) {
-              if (error instanceof Error) {
-                if (error.message.includes('permission denied')) {
-                  throw new FilePermissionError('write', path);
-                } else if (error.message.includes('file already exists')) {
-                  throw new FileAlreadyExistsError(path);
-                }
-              }
-              throw new FileWriteError(path, error as Error);
-            }
-
-            const updatedFile: File = {
-              ...file,
-              content,
-              metadata: {
-                lastModified: Date.now(),
-                size: newSize,
-              },
-            };
-            this.files.setKey(path, updatedFile);
-            
-            if (!this.#modifiedFiles.has(path)) {
-              this.#modifiedFiles.set(path, currentContent);
-            }
-          }
-          return; // Operation successful, exit the retry loop
-        } catch (error) {
-          retries++;
-          if (retries >= this.#config.maxRetries!) {
-            if (error instanceof FilesStoreError) {
-              throw error;
-            }
-            throw new FileOperationError('update', path, error as Error);
-          }
-          await new Promise(resolve => setTimeout(resolve, this.#config.retryDelay));
+        // Validate file size before writing
+        const newSize = Buffer.byteLength(content);
+        if (newSize > this.#config.maxFileSize!) {
+          throw new FileSizeExceededError(path, newSize, this.#config.maxFileSize!);
         }
+
+        if (diff.diffChars(currentContent, content).length > 1) {
+          await ErrorHandler.retryOperation(
+            () => webcontainer.fs.writeFile(path, content),
+            {
+              maxRetries: this.#config.maxRetries!,
+              retryDelay: this.#config.retryDelay!,
+              operationName: 'write',
+              path
+            }
+          );
+
+          // Update file metadata
+          const updatedFile: File = {
+            ...file,
+            content,
+            metadata: {
+              lastModified: Date.now(),
+              size: newSize,
+            },
+          };
+          
+          this.files.setKey(path, updatedFile);
+          
+          if (!this.#modifiedFiles.has(path)) {
+            this.#modifiedFiles.set(path, currentContent);
+          }
+        }
+      } catch (error) {
+        ErrorHandler.handleFileOperation(error as Error, path, 'save');
       }
     });
-  }
-
-  async #retryOperation<T>(operation: () => Promise<T>): Promise<T> {
-    let retries = 0;
-    while (retries < this.#config.maxRetries!) {
-      try {
-        return await operation();
-      } catch (error) {
-        retries++;
-        if (retries >= this.#config.maxRetries!) {
-          throw error;
-        }
-        await new Promise(resolve => setTimeout(resolve, this.#config.retryDelay));
-      }
-    }
-    throw new Error('Max retries reached'); // This should never be reached due to the throw in the loop
   }
 
   async #queueFileOperation(operation: () => Promise<void>) {
