@@ -45,7 +45,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
           .split('\n')
           .filter((line) => line !== '')
           .map(parseStreamPart)
-          .map((part) => part.value)
+          .map((part) => part.value || '')
           .join('');
 
         controller.enqueue(encoder.encode(processedChunk));
