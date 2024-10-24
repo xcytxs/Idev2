@@ -44,6 +44,7 @@ const ModelSelector = ({ model, setModel, modelList, providerList }) => {
         ))}
         <option key="Ollama" value="Ollama">
           Ollama
+        </option>
         <option key="OpenAILike" value="OpenAILike">
           OpenAILike
         </option>
