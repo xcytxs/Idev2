@@ -12,6 +12,7 @@ This fork of Bolt.new allows you to choose the LLM that you use for each prompt!
 - ✅ Filter models by provider (@jasonm23)
 - ✅ Download project as ZIP (@fabwaseem)
 - ✅ Improvements to the main Bolt.new prompt in `app\lib\.server\llm\prompts.ts` (@kofi-bhr)
+- ✅ Mistral Integration (@ArulGandhi)
 - ⬜ LM Studio Integration
 - ⬜ DeepSeek API Integration
 - ⬜ Together Integration
