@@ -2,62 +2,65 @@
 
 # Bolt.new Fork by Cole Medin
 
-This fork of Bolt.new allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+This enhanced fork of Bolt.new empowers you to choose from a variety of Language Models (LLMs) for each prompt, including OpenAI, Anthropic, Ollama, OpenRouter, Gemini, and Groq. The architecture is designed for easy extension to support any model compatible with the Vercel AI SDK. Detailed instructions for local setup and model integration are provided below.
 
-# Requested Additions to this Fork - Feel Free to Contribute!!
+## Completed Enhancements
 
 - ✅ OpenRouter Integration (@coleam00)
 - ✅ Gemini Integration (@jonathands)
-- ✅ Autogenerate Ollama models from what is downloaded (@yunatamos)
-- ✅ Filter models by provider (@jasonm23)
-- ✅ Download project as ZIP (@fabwaseem)
+- ✅ Automatic Ollama model detection (@yunatamos)
+- ✅ Model filtering by provider (@jasonm23)
+- ✅ Project download as ZIP (@fabwaseem)
+
+## Roadmap - Contributions Welcome!
+
 - ⬜ LM Studio Integration
 - ⬜ DeepSeek API Integration
-- ⬜ Together Integration
-- ⬜ Azure Open AI API Integration
+- ⬜ Together AI Integration
+- ⬜ Azure OpenAI API Integration
 - ⬜ HuggingFace Integration
-- ⬜ Perplexity Integration
-- ⬜ Containerize the application with Docker for easy installation
-- ⬜ Better prompting for smaller LLMs (code window sometimes doesn't start)
-- ⬜ Attach images to prompts
-- ⬜ Run agents in the backend as opposed to a single model call
-- ⬜ Publish projects directly to GitHub
-- ⬜ Deploy directly to Vercel/Netlify/other similar platforms
-- ⬜ Load local projects into the app
-- ⬜ Ability to revert code to earlier version
-- ⬜ Prompt caching
-- ⬜ Ability to enter API keys in the UI
-- ⬜ Prevent Bolt from rewriting files as often
+- ⬜ Perplexity AI Integration
+- ⬜ Docker containerization for simplified deployment
+- ⬜ Optimized prompting for smaller LLMs
+- ⬜ Image attachment support for prompts
+- ⬜ Backend agent execution (replacing single model calls)
+- ⬜ Direct GitHub project publishing
+- ⬜ One-click deployment to Vercel/Netlify/similar platforms
+- ⬜ Local project import functionality
+- ⬜ Code version control and rollback feature
+- ⬜ Prompt result caching for efficiency
+- ⬜ In-UI API key management
+- ⬜ Reduced frequency of file rewrites
 
-# Bolt.new: AI-Powered Full-Stack Web Development in the Browser
+# Bolt.new: Revolutionizing Full-Stack Web Development in the Browser
 
-Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
+Bolt.new is a cutting-edge AI-powered web development platform that enables you to prompt, run, edit, and deploy full-stack applications directly from your browser, eliminating the need for local setup. For those interested in building their own AI-powered web development tools using the Bolt open-source codebase, [start here](./CONTRIBUTING.md).
 
-## What Makes Bolt.new Different
+## Bolt.new's Unique Advantages
 
-Claude, v0, etc are incredible- but you can't install packages, run backends, or edit code. That’s where Bolt.new stands out:
+While platforms like Claude and GPT-4 excel at code generation, Bolt.new takes it further by providing a complete development environment:
 
-- **Full-Stack in the Browser**: Bolt.new integrates cutting-edge AI models with an in-browser development environment powered by **StackBlitz’s WebContainers**. This allows you to:
-  - Install and run npm tools and libraries (like Vite, Next.js, and more)
-  - Run Node.js servers
-  - Interact with third-party APIs
-  - Deploy to production from chat
-  - Share your work via a URL
+- **Comprehensive Browser-Based Development**: Bolt.new seamlessly integrates state-of-the-art AI models with an in-browser development environment powered by **StackBlitz's WebContainers**, enabling:
+  - Installation and execution of npm tools and libraries (e.g., Vite, Next.js)
+  - Node.js server runtime
+  - Third-party API integration
+  - Chat-based production deployment
+  - Shareable project URLs
 
-- **AI with Environment Control**: Unlike traditional dev environments where the AI can only assist in code generation, Bolt.new gives AI models **complete control** over the entire  environment including the filesystem, node server, package manager, terminal, and browser console. This empowers AI agents to handle the whole app lifecycle—from creation to deployment.
+- **AI-Driven Environment Control**: Unlike traditional IDEs where AI assists only in code generation, Bolt.new grants AI models **full control** over the entire development ecosystem, including the filesystem, Node.js server, package manager, terminal, and browser console. This empowers AI agents to manage the complete application lifecycle from inception to deployment.
 
-Whether you’re an experienced developer, a PM, or a designer, Bolt.new allows you to easily build production-grade full-stack applications.
+Bolt.new caters to experienced developers, product managers, and designers alike, facilitating the creation of production-ready full-stack applications with ease.
 
-For developers interested in building their own AI-powered development tools with WebContainers, check out the open-source Bolt codebase in this repo!
+For developers keen on building their own AI-enhanced development tools using WebContainers, explore the open-source Bolt codebase in this repository!
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Ensure you have the following installed before proceeding:
 
-- Node.js (v20.15.1)
-- pnpm (v9.4.0)
+- Node.js (v20.15.1 or later)
+- pnpm (v9.4.0 or later)
 
-## Setup
+## Setup Instructions
 
 1. Clone the repository (if you haven't already):
 
@@ -115,27 +118,3 @@ pnpm run dev
 ```
 
 This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally! It's an easy install and a good browser for web development anyway.
-
-## Tips and Tricks
-
-Here are some tips to get the most out of Bolt.new:
-
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
-
-- **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
-
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
-
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
-
-## Contributing
-
-We welcome contributions to Bolt.new! If you'd like to contribute, please follow these steps:
-
-1. Fork the repository
-2. Create a new branch for your feature or bug fix
-3. Make your changes and commit them with a clear commit message
-4. Push your changes to your fork
-5. Create a pull request with a description of your changes
-
-Please make sure to update tests as appropriate and adhere to the existing coding style.

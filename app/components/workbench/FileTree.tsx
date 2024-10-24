@@ -249,7 +249,6 @@ function getFileIcon(fileName: string, isFolder: boolean, isFolderOpen?: boolean
     woff2: 'i-mdi:font-awesome text-red-300',
     astro: 'i-mdi:rocket-launch text-orange-500',
     vue: 'i-mdi:vuejs text-green-400',
-    svelte: 'i-mdi:language-svelte text-red-500',
     go: 'i-mdi:language-go text-blue-400',
     rs: 'i-mdi:language-rust text-orange-600',
     java: 'i-mdi:language-java text-red-400',
@@ -265,13 +264,8 @@ function getFileIcon(fileName: string, isFolder: boolean, isFolderOpen?: boolean
     toml: 'i-mdi:file-code-outline text-gray-500',
     'tsconfig.json': 'i-mdi:language-typescript text-blue-600',
     'babel.config.js': 'i-mdi:babel text-yellow-400',
-    'rollup.config.js': 'i-mdi:rollup text-red-400',
-    'vite.config.js': 'i-mdi:vite text-purple-500',
-    'next.config.js': 'i-mdi:next text-black',
-    'nuxt.config.js': 'i-mdi:nuxt text-green-500',
     'angular.json': 'i-mdi:angular text-red-600',
     'tailwind.config.js': 'i-mdi:tailwind text-teal-400',
-    'postcss.config.js': 'i-mdi:postcss text-red-500',
   };
 
   return iconMap[extension || ''] || 'i-mdi:file-outline text-gray-400';
