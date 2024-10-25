@@ -7,7 +7,7 @@ import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
-import { HistoryItem } from './HistoryItem';
+import { HistoryItem } from './HistoryItem.client';
 import { binDates } from './date-binning';
 
 const menuVariants = {

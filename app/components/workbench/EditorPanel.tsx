@@ -1,14 +1,10 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
-import {
-  CodeMirrorEditor,
-  type EditorDocument,
-  type EditorSettings,
-  type OnChangeCallback as OnEditorChange,
-  type OnSaveCallback as OnEditorSave,
-  type OnScrollCallback as OnEditorScroll,
-} from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { EditorDocument, EditorSettings } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnChangeCallback as OnEditorChange } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnSaveCallback as OnEditorSave } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnScrollCallback as OnEditorScroll } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
@@ -23,6 +19,7 @@ import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import { EditorSelection } from '@codemirror/state';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -40,8 +37,13 @@ interface EditorPanelProps {
 const MAX_TERMINALS = 3;
 const DEFAULT_TERMINAL_SIZE = 25;
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
+const DEFAULT_SIDEBAR_SIZE = 20;
 
-const editorSettings: EditorSettings = { tabSize: 2 };
+const editorSettings: EditorSettings = { 
+  fontSize: '14px',
+  gutterFontSize: '12px',
+  tabSize: 2,
+};
 
 export const EditorPanel = memo(
   ({
@@ -64,9 +66,18 @@ export const EditorPanel = memo(
     const terminalRefs = useRef<Array<TerminalRef | null>>([]);
     const terminalPanelRef = useRef<ImperativePanelHandle>(null);
     const terminalToggledByShortcut = useRef(false);
+    const [Editor, setEditor] = useState<any>(null);
 
     const [activeTerminal, setActiveTerminal] = useState(0);
     const [terminalCount, setTerminalCount] = useState(1);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+      // Dynamically import Monaco editor on client-side only
+      import('~/components/editor/MonacoEditor').then((module) => {
+        setEditor(() => module.MonacoEditor);
+      });
+    }, []);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -122,15 +133,36 @@ export const EditorPanel = memo(
       }
     };
 
+    // Adapter functions to convert between CodeMirror and Monaco callback types
+    const handleEditorScroll = (scrollTop: number) => {
+      onEditorScroll?.({ top: scrollTop, left: 0 });
+    };
+
+    const handleEditorChange = (value: string) => {
+      onEditorChange?.({
+        selection: EditorSelection.single(0),
+        content: value
+      });
+    };
+
     return (
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={20} minSize={10} collapsible>
+            <Panel 
+              defaultSize={DEFAULT_SIDEBAR_SIZE} 
+              minSize={10} 
+              collapsible
+              onCollapse={() => setSidebarCollapsed(true)}
+              onExpand={() => setSidebarCollapsed(false)}
+            >
               <div className="flex flex-col border-r border-bolt-elements-borderColor h-full">
                 <PanelHeader>
-                  <div className="i-ph:tree-structure-duotone shrink-0" />
-                  Files
+                  <div className={classNames(
+                    'i-ph:tree-structure-duotone shrink-0',
+                    sidebarCollapsed ? 'rotate-90' : ''
+                  )} />
+                  {!sidebarCollapsed && 'Explorer'}
                 </PanelHeader>
                 <FileTree
                   className="h-full"
@@ -143,7 +175,7 @@ export const EditorPanel = memo(
                 />
               </div>
             </Panel>
-            <PanelResizeHandle />
+            <PanelResizeHandle className="w-1 hover:w-1 active:w-1 bg-bolt-elements-borderColor" />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
@@ -165,21 +197,25 @@ export const EditorPanel = memo(
                 )}
               </PanelHeader>
               <div className="h-full flex-1 overflow-hidden">
-                <CodeMirrorEditor
-                  theme={theme}
-                  editable={!isStreaming && editorDocument !== undefined}
-                  settings={editorSettings}
-                  doc={editorDocument}
-                  autoFocusOnDocumentChange={!isMobile()}
-                  onScroll={onEditorScroll}
-                  onChange={onEditorChange}
-                  onSave={onFileSave}
-                />
+                {Editor ? (
+                  <Editor
+                    theme={theme}
+                    editable={!isStreaming && editorDocument !== undefined}
+                    settings={editorSettings}
+                    doc={editorDocument}
+                    autoFocusOnDocumentChange={!isMobile()}
+                    onScroll={handleEditorScroll}
+                    onChange={handleEditorChange}
+                    onSave={onFileSave}
+                  />
+                ) : (
+                  <div>Loading editor...</div>
+                )}
               </div>
             </Panel>
           </PanelGroup>
         </Panel>
-        <PanelResizeHandle />
+        <PanelResizeHandle className="h-1 hover:h-1 active:h-1 bg-bolt-elements-borderColor" />
         <Panel
           ref={terminalPanelRef}
           defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
@@ -239,7 +275,7 @@ export const EditorPanel = memo(
                       hidden: !isActive,
                     })}
                     ref={(ref) => {
-                      terminalRefs.current.push(ref);
+                      terminalRefs.current[index] = ref;
                     }}
                     onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
                     onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}

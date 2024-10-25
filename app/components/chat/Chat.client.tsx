@@ -15,6 +15,7 @@ import { DEFAULT_MODEL } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
+import { ImageUpload } from './ImageUpload';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -22,6 +23,26 @@ const toastAnimation = cssTransition({
 });
 
 const logger = createScopedLogger('Chat');
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_MESSAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+function getBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(new Error(`Failed to read image: ${error.message}`));
+  });
+}
 
 export function Chat() {
   renderLogger.trace('Chat');
@@ -40,9 +61,6 @@ export function Chat() {
           );
         }}
         icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
           switch (type) {
             case 'success': {
               return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
@@ -51,7 +69,6 @@ export function Chat() {
               return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
             }
           }
-
           return undefined;
         }}
         position="bottom-right"
@@ -74,6 +91,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
   const [model, setModel] = useState(DEFAULT_MODEL);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const { showChat } = useStore(chatStore);
 
@@ -82,11 +101,29 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
     api: '/api/chat',
     onError: (error) => {
-      logger.error('Request failed\n\n', error);
-      toast.error('There was an error processing your request');
+      logger.error('Chat API Error:', error);
+      let errorMessage = 'An error occurred';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('413')) {
+          errorMessage = `Message too large. Try reducing content or image size.`;
+        } else if (error.message.includes('429')) {
+          errorMessage = 'Too many requests. Please wait a moment.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Server might be busy.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (error.message.includes('memory')) {
+          errorMessage = 'Server memory limit reached. Try a smaller image.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      toast.error(errorMessage);
     },
     onFinish: () => {
-      logger.debug('Finished streaming');
+      logger.debug('Chat finished streaming');
     },
     initialMessages,
   });
@@ -104,7 +141,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     parseMessages(messages, isLoading);
 
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages).catch((error) => {
+        logger.error('Failed to store message history:', error);
+        toast.error('Failed to save chat history');
+      });
     }
   }, [messages, isLoading, parseMessages]);
 
@@ -153,54 +193,92 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
     const _input = messageInput || input;
 
-    if (_input.length === 0 || isLoading) {
+    if ((_input.length === 0 && !imageFile) || isLoading || isProcessingImage) {
       return;
     }
 
-    /**
-     * @note (delm) Usually saving files shouldn't take long but it may take longer if there
-     * many unsaved files. In that case we need to block user input and show an indicator
-     * of some kind so the user is aware that something is happening. But I consider the
-     * happy case to be no unsaved files and I would expect users to save their changes
-     * before they send another message.
-     */
-    await workbenchStore.saveAllFiles();
+    try {
+      await workbenchStore.saveAllFiles();
 
-    const fileModifications = workbenchStore.getFileModifcations();
+      const fileModifications = workbenchStore.getFileModifcations();
 
-    chatStore.setKey('aborted', false);
+      chatStore.setKey('aborted', false);
 
-    runAnimation();
+      runAnimation();
 
-    if (fileModifications !== undefined) {
-      const diff = fileModificationsToHTML(fileModifications);
+      let messageContent = `[Model: ${model}]\n\n`;
 
-      /**
-       * If we have file modifications we append a new user message manually since we have to prefix
-       * the user input with the file modifications and we don't want the new user input to appear
-       * in the prompt. Using `append` is almost the same as `handleSubmit` except that we have to
-       * manually reset the input and we'd have to manually pass in file attachments. However, those
-       * aren't relevant here.
-       */
-      append({ role: 'user', content: `[Model: ${model}]\n\n${diff}\n\n${_input}` });
+      if (fileModifications !== undefined) {
+        const diff = fileModificationsToHTML(fileModifications);
+        messageContent += `${diff}\n\n`;
+      }
 
-      /**
-       * After sending a new message we reset all modifications since the model
-       * should now be aware of all the changes.
-       */
-      workbenchStore.resetAllFileModifications();
-    } else {
-      append({ role: 'user', content: `[Model: ${model}]\n\n${_input}` });
+      messageContent += _input;
+
+      if (imageFile) {
+        setIsProcessingImage(true);
+        try {
+          logger.debug(`Processing image: ${imageFile.name} (${formatBytes(imageFile.size)})`);
+          const base64Image = await getBase64(imageFile);
+          const base64Size = base64Image.length * 0.75;
+          
+          if (base64Size > MAX_MESSAGE_SIZE) {
+            throw new Error(`Image too large after encoding (${formatBytes(base64Size)}). Please use a smaller image.`);
+          }
+          
+          messageContent += `\n\n${base64Image}`;
+          logger.debug('Image processed successfully');
+        } catch (error) {
+          logger.error('Image processing error:', error);
+          throw new Error(`Failed to process image: ${error.message}`);
+        }
+      }
+
+      const messageSize = new Blob([messageContent]).size;
+      if (messageSize > MAX_MESSAGE_SIZE) {
+        throw new Error(`Message size (${formatBytes(messageSize)}) exceeds limit (${formatBytes(MAX_MESSAGE_SIZE)})`);
+      }
+
+      append({ 
+        role: 'user', 
+        content: messageContent
+      });
+
+      if (fileModifications !== undefined) {
+        workbenchStore.resetAllFileModifications();
+      }
+
+      setInput('');
+      setImageFile(null);
+      resetEnhancer();
+      textareaRef.current?.blur();
+    } catch (error) {
+      logger.error('Error sending message:', error);
+      toast.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsProcessingImage(false);
     }
-
-    setInput('');
-
-    resetEnhancer();
-
-    textareaRef.current?.blur();
   };
 
   const [messageRef, scrollRef] = useSnapScroll();
+
+  const handleImageUpload = (file: File) => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Only image files are allowed');
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        throw new Error(`Image size (${formatBytes(file.size)}) exceeds limit (${formatBytes(MAX_IMAGE_SIZE)})`);
+      }
+
+      setImageFile(file);
+      toast.success(`Image "${file.name}" attached`);
+    } catch (error) {
+      logger.error('Image upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+    }
+  };
 
   return (
     <BaseChat
@@ -209,7 +287,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       input={input}
       showChat={showChat}
       chatStarted={chatStarted}
-      isStreaming={isLoading}
+      isStreaming={isLoading || isProcessingImage}
       enhancingPrompt={enhancingPrompt}
       promptEnhanced={promptEnhanced}
       sendMessage={sendMessage}
@@ -235,6 +313,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           scrollTextArea();
         });
       }}
+      imageFile={imageFile}
+      onImageUpload={handleImageUpload}
+      isProcessingImage={isProcessingImage}
     />
   );
 });

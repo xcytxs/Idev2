@@ -4,6 +4,7 @@ import { bracketMatching, foldGutter, indentOnInput, indentUnit } from '@codemir
 import { searchKeymap } from '@codemirror/search';
 import { Compartment, EditorSelection, EditorState, StateEffect, StateField, type Extension } from '@codemirror/state';
 import {
+  Decoration,
   drawSelection,
   dropCursor,
   EditorView,
@@ -11,18 +12,20 @@ import {
   highlightActiveLineGutter,
   keymap,
   lineNumbers,
-  scrollPastEnd,
   showTooltip,
   tooltips,
+  ViewPlugin,
+  ViewUpdate,
   type Tooltip,
+  type DecorationSet,
 } from '@codemirror/view';
-import { memo, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Theme } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
-import { createScopedLogger, renderLogger } from '~/utils/logger';
+import { createScopedLogger } from '~/utils/logger';
 import { BinaryContent } from './BinaryContent';
-import { getTheme, reconfigureTheme } from './cm-theme';
+import { getTheme, themeEffect } from './cm-theme';
 import { indentKeyBinding } from './indent';
 import { getLanguage } from './languages';
 
@@ -40,10 +43,6 @@ export interface EditorSettings {
   gutterFontSize?: string;
   tabSize?: number;
 }
-
-type TextEditorDocument = EditorDocument & {
-  value: string;
-};
 
 export interface ScrollPosition {
   top: number;
@@ -76,28 +75,6 @@ interface Props {
 
 type EditorStates = Map<string, EditorState>;
 
-const readOnlyTooltipStateEffect = StateEffect.define<boolean>();
-
-const editableTooltipField = StateField.define<readonly Tooltip[]>({
-  create: () => [],
-  update(_tooltips, transaction) {
-    if (!transaction.state.readOnly) {
-      return [];
-    }
-
-    for (const effect of transaction.effects) {
-      if (effect.is(readOnlyTooltipStateEffect) && effect.value) {
-        return getReadOnlyTooltip(transaction.state);
-      }
-    }
-
-    return [];
-  },
-  provide: (field) => {
-    return showTooltip.computeN([field], (state) => state.field(field));
-  },
-});
-
 const editableStateEffect = StateEffect.define<boolean>();
 
 const editableStateField = StateField.define<boolean>({
@@ -110,9 +87,39 @@ const editableStateField = StateField.define<boolean>({
         return effect.value;
       }
     }
-
     return value;
   },
+});
+
+// Create decorations for change highlighting
+const addedLineDecoration = Decoration.line({ class: 'cm-line cm-added' });
+const changedLineDecoration = Decoration.line({ class: 'cm-line cm-changed' });
+
+const changeHighlighter = ViewPlugin.fromClass(class {
+  decorations: DecorationSet;
+
+  constructor(view: EditorView) {
+    this.decorations = Decoration.none;
+  }
+
+  update(update: ViewUpdate) {
+    if (!update.docChanged) return;
+    
+    let decorations: Array<{ from: number; to: number; decoration: Decoration }> = [];
+    
+    update.changes.iterChanges((fromA: number, toA: number, fromB: number, toB: number) => {
+      const decoration = fromA === toA ? addedLineDecoration : changedLineDecoration;
+      const lineStart = update.state.doc.lineAt(fromB).from;
+      const lineEnd = update.state.doc.lineAt(toB).to;
+      decorations.push({ from: lineStart, to: lineEnd, decoration });
+    });
+    
+    this.decorations = Decoration.set(decorations.map(({ from, to, decoration }) => 
+      decoration.range(from, to)
+    ));
+  }
+}, {
+  decorations: v => v.decorations,
 });
 
 export const CodeMirrorEditor = memo(
@@ -130,61 +137,114 @@ export const CodeMirrorEditor = memo(
     settings,
     className = '',
   }: Props) => {
-    renderLogger.trace('CodeMirrorEditor');
-
     const [languageCompartment] = useState(new Compartment());
-
     const containerRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<EditorView>();
-    const themeRef = useRef<Theme>();
-    const docRef = useRef<EditorDocument>();
-    const editorStatesRef = useRef<EditorStates>();
-    const onScrollRef = useRef(onScroll);
-    const onChangeRef = useRef(onChange);
-    const onSaveRef = useRef(onSave);
+    const editorStatesRef = useRef<EditorStates>(new Map());
+    const lastScrollTime = useRef(0);
+    const isScrolling = useRef(false);
 
-    /**
-     * This effect is used to avoid side effects directly in the render function
-     * and instead the refs are updated after each render.
-     */
+    // Initialize editor
     useEffect(() => {
-      onScrollRef.current = onScroll;
-      onChangeRef.current = onChange;
-      onSaveRef.current = onSave;
-      docRef.current = doc;
-      themeRef.current = theme;
-    });
+      const initializeEditor = async () => {
+        let languageSupport: Extension | undefined;
+        if (doc?.filePath) {
+          languageSupport = await getLanguage(doc.filePath);
+        }
 
-    useEffect(() => {
-      const onUpdate = debounce((update: EditorUpdate) => {
-        onChangeRef.current?.(update);
-      }, debounceChange);
+        const view = new EditorView({
+          parent: containerRef.current!,
+          dispatch: (tr) => {
+            view.update([tr]);
+            if (tr.docChanged) {
+              onChange?.({
+                selection: view.state.selection,
+                content: view.state.doc.toString(),
+              });
 
-      const view = new EditorView({
-        parent: containerRef.current!,
-        dispatchTransactions(transactions) {
-          const previousSelection = view.state.selection;
+              // Smart scrolling
+              const now = Date.now();
+              if (!isScrolling.current && now - lastScrollTime.current > 100) {
+                const visibleLines = Math.floor(view.dom.clientHeight / 20);
+                const totalLines = view.state.doc.lines;
+                
+                if (totalLines > visibleLines * 2) {
+                  isScrolling.current = true;
+                  requestAnimationFrame(() => {
+                    const targetLine = Math.max(1, totalLines - Math.floor(visibleLines * 0.75));
+                    const pos = view.state.doc.line(targetLine).from;
+                    view.scrollDOM.scrollTop = view.lineBlockAt(pos).top;
+                    lastScrollTime.current = now;
+                    isScrolling.current = false;
+                  });
+                }
+              }
+            }
+          },
+        });
 
-          view.update(transactions);
+        viewRef.current = view;
 
-          const newSelection = view.state.selection;
+        // Set initial state with language support
+        if (doc) {
+          const state = EditorState.create({
+            doc: doc.value,
+            extensions: [
+              getTheme(theme, settings),
+              history(),
+              keymap.of([
+                ...defaultKeymap,
+                ...historyKeymap,
+                ...searchKeymap,
+                { key: 'Tab', run: acceptCompletion },
+                {
+                  key: 'Mod-s',
+                  preventDefault: true,
+                  run: () => {
+                    onSave?.();
+                    return true;
+                  },
+                },
+                indentKeyBinding,
+              ]),
+              indentUnit.of('\t'),
+              autocompletion({ closeOnBlur: false }),
+              closeBrackets(),
+              lineNumbers(),
+              dropCursor(),
+              drawSelection(),
+              bracketMatching(),
+              EditorState.tabSize.of(settings?.tabSize ?? 2),
+              indentOnInput(),
+              editableStateField,
+              EditorState.readOnly.from(editableStateField, (editable) => !editable),
+              highlightActiveLineGutter(),
+              highlightActiveLine(),
+              changeHighlighter,
+              EditorView.updateListener.of((update) => {
+                if (update.docChanged) {
+                  editorStatesRef.current.set(doc.filePath, update.state);
+                }
+              }),
+              EditorView.domEventHandlers({
+                scroll: debounce((event, view) => {
+                  if (event.target !== view.scrollDOM) return;
+                  onScroll?.({
+                    left: view.scrollDOM.scrollLeft,
+                    top: view.scrollDOM.scrollTop,
+                  });
+                }, debounceScroll),
+              }),
+              languageCompartment.of(languageSupport ? [languageSupport] : []),
+            ],
+          });
 
-          const selectionChanged =
-            newSelection !== previousSelection &&
-            (newSelection === undefined || previousSelection === undefined || !newSelection.eq(previousSelection));
+          view.setState(state);
+          editorStatesRef.current.set(doc.filePath, state);
+        }
+      };
 
-          if (docRef.current && (transactions.some((transaction) => transaction.docChanged) || selectionChanged)) {
-            onUpdate({
-              selection: view.state.selection,
-              content: view.state.doc.toString(),
-            });
-
-            editorStatesRef.current!.set(docRef.current.filePath, view.state);
-          }
-        },
-      });
-
-      viewRef.current = view;
+      initializeEditor();
 
       return () => {
         viewRef.current?.destroy();
@@ -192,66 +252,100 @@ export const CodeMirrorEditor = memo(
       };
     }, []);
 
+    // Handle theme changes
     useEffect(() => {
-      if (!viewRef.current) {
-        return;
-      }
-
+      if (!viewRef.current) return;
       viewRef.current.dispatch({
-        effects: [reconfigureTheme(theme)],
+        effects: themeEffect.of(theme)
       });
     }, [theme]);
 
+    // Handle document changes
     useEffect(() => {
-      editorStatesRef.current = new Map<string, EditorState>();
-    }, [id]);
+      if (!viewRef.current || !doc) return;
 
-    useEffect(() => {
-      const editorStates = editorStatesRef.current!;
-      const view = viewRef.current!;
-      const theme = themeRef.current!;
+      const view = viewRef.current;
 
-      if (!doc) {
-        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, [
-          languageCompartment.of([]),
-        ]);
-
-        view.setState(state);
-
-        setNoDocument(view);
-
-        return;
-      }
-
-      if (doc.isBinary) {
-        return;
-      }
-
-      if (doc.filePath === '') {
-        logger.warn('File path should not be empty');
-      }
-
-      let state = editorStates.get(doc.filePath);
-
+      // Create new state if needed
+      let state = editorStatesRef.current.get(doc.filePath);
       if (!state) {
-        state = newEditorState(doc.value, theme, settings, onScrollRef, debounceScroll, onSaveRef, [
-          languageCompartment.of([]),
-        ]);
+        getLanguage(doc.filePath).then(languageSupport => {
+          state = EditorState.create({
+            doc: doc.value,
+            extensions: [
+              getTheme(theme, settings),
+              history(),
+              keymap.of([
+                ...defaultKeymap,
+                ...historyKeymap,
+                ...searchKeymap,
+                { key: 'Tab', run: acceptCompletion },
+                {
+                  key: 'Mod-s',
+                  preventDefault: true,
+                  run: () => {
+                    onSave?.();
+                    return true;
+                  },
+                },
+                indentKeyBinding,
+              ]),
+              indentUnit.of('\t'),
+              autocompletion({ closeOnBlur: false }),
+              closeBrackets(),
+              lineNumbers(),
+              dropCursor(),
+              drawSelection(),
+              bracketMatching(),
+              EditorState.tabSize.of(settings?.tabSize ?? 2),
+              indentOnInput(),
+              editableStateField,
+              EditorState.readOnly.from(editableStateField, (editable) => !editable),
+              highlightActiveLineGutter(),
+              highlightActiveLine(),
+              changeHighlighter,
+              EditorView.updateListener.of((update) => {
+                if (update.docChanged) {
+                  editorStatesRef.current.set(doc.filePath, update.state);
+                }
+              }),
+              EditorView.domEventHandlers({
+                scroll: debounce((event, view) => {
+                  if (event.target !== view.scrollDOM) return;
+                  onScroll?.({
+                    left: view.scrollDOM.scrollLeft,
+                    top: view.scrollDOM.scrollTop,
+                  });
+                }, debounceScroll),
+              }),
+              languageCompartment.of(languageSupport ? [languageSupport] : []),
+            ],
+          });
 
-        editorStates.set(doc.filePath, state);
+          editorStatesRef.current.set(doc.filePath, state);
+          view.setState(state!);
+        });
+      } else {
+        view.setState(state);
       }
 
-      view.setState(state);
+      // Update content if needed
+      if (doc.value !== view.state.doc.toString()) {
+        view.dispatch({
+          changes: {
+            from: 0,
+            to: view.state.doc.length,
+            insert: doc.value,
+          },
+        });
+      }
 
-      setEditorDocument(
-        view,
-        theme,
-        editable,
-        languageCompartment,
-        autoFocusOnDocumentChange,
-        doc as TextEditorDocument,
-      );
-    }, [doc?.value, editable, doc?.filePath, autoFocusOnDocumentChange]);
+      // Set editable state
+      view.dispatch({
+        effects: editableStateEffect.of(editable && !doc.isBinary),
+      });
+
+    }, [doc?.value, doc?.filePath, editable]);
 
     return (
       <div className={classNames('relative h-full', className)}>
@@ -263,199 +357,3 @@ export const CodeMirrorEditor = memo(
 );
 
 export default CodeMirrorEditor;
-
-CodeMirrorEditor.displayName = 'CodeMirrorEditor';
-
-function newEditorState(
-  content: string,
-  theme: Theme,
-  settings: EditorSettings | undefined,
-  onScrollRef: MutableRefObject<OnScrollCallback | undefined>,
-  debounceScroll: number,
-  onFileSaveRef: MutableRefObject<OnSaveCallback | undefined>,
-  extensions: Extension[],
-) {
-  return EditorState.create({
-    doc: content,
-    extensions: [
-      EditorView.domEventHandlers({
-        scroll: debounce((event, view) => {
-          if (event.target !== view.scrollDOM) {
-            return;
-          }
-
-          onScrollRef.current?.({ left: view.scrollDOM.scrollLeft, top: view.scrollDOM.scrollTop });
-        }, debounceScroll),
-        keydown: (event, view) => {
-          if (view.state.readOnly) {
-            view.dispatch({
-              effects: [readOnlyTooltipStateEffect.of(event.key !== 'Escape')],
-            });
-
-            return true;
-          }
-
-          return false;
-        },
-      }),
-      getTheme(theme, settings),
-      history(),
-      keymap.of([
-        ...defaultKeymap,
-        ...historyKeymap,
-        ...searchKeymap,
-        { key: 'Tab', run: acceptCompletion },
-        {
-          key: 'Mod-s',
-          preventDefault: true,
-          run: () => {
-            onFileSaveRef.current?.();
-            return true;
-          },
-        },
-        indentKeyBinding,
-      ]),
-      indentUnit.of('\t'),
-      autocompletion({
-        closeOnBlur: false,
-      }),
-      tooltips({
-        position: 'absolute',
-        parent: document.body,
-        tooltipSpace: (view) => {
-          const rect = view.dom.getBoundingClientRect();
-
-          return {
-            top: rect.top - 50,
-            left: rect.left,
-            bottom: rect.bottom,
-            right: rect.right + 10,
-          };
-        },
-      }),
-      closeBrackets(),
-      lineNumbers(),
-      scrollPastEnd(),
-      dropCursor(),
-      drawSelection(),
-      bracketMatching(),
-      EditorState.tabSize.of(settings?.tabSize ?? 2),
-      indentOnInput(),
-      editableTooltipField,
-      editableStateField,
-      EditorState.readOnly.from(editableStateField, (editable) => !editable),
-      highlightActiveLineGutter(),
-      highlightActiveLine(),
-      foldGutter({
-        markerDOM: (open) => {
-          const icon = document.createElement('div');
-
-          icon.className = `fold-icon ${open ? 'i-ph-caret-down-bold' : 'i-ph-caret-right-bold'}`;
-
-          return icon;
-        },
-      }),
-      ...extensions,
-    ],
-  });
-}
-
-function setNoDocument(view: EditorView) {
-  view.dispatch({
-    selection: { anchor: 0 },
-    changes: {
-      from: 0,
-      to: view.state.doc.length,
-      insert: '',
-    },
-  });
-
-  view.scrollDOM.scrollTo(0, 0);
-}
-
-function setEditorDocument(
-  view: EditorView,
-  theme: Theme,
-  editable: boolean,
-  languageCompartment: Compartment,
-  autoFocus: boolean,
-  doc: TextEditorDocument,
-) {
-  if (doc.value !== view.state.doc.toString()) {
-    view.dispatch({
-      selection: { anchor: 0 },
-      changes: {
-        from: 0,
-        to: view.state.doc.length,
-        insert: doc.value,
-      },
-    });
-  }
-
-  view.dispatch({
-    effects: [editableStateEffect.of(editable && !doc.isBinary)],
-  });
-
-  getLanguage(doc.filePath).then((languageSupport) => {
-    if (!languageSupport) {
-      return;
-    }
-
-    view.dispatch({
-      effects: [languageCompartment.reconfigure([languageSupport]), reconfigureTheme(theme)],
-    });
-
-    requestAnimationFrame(() => {
-      const currentLeft = view.scrollDOM.scrollLeft;
-      const currentTop = view.scrollDOM.scrollTop;
-      const newLeft = doc.scroll?.left ?? 0;
-      const newTop = doc.scroll?.top ?? 0;
-
-      const needsScrolling = currentLeft !== newLeft || currentTop !== newTop;
-
-      if (autoFocus && editable) {
-        if (needsScrolling) {
-          // we have to wait until the scroll position was changed before we can set the focus
-          view.scrollDOM.addEventListener(
-            'scroll',
-            () => {
-              view.focus();
-            },
-            { once: true },
-          );
-        } else {
-          // if the scroll position is still the same we can focus immediately
-          view.focus();
-        }
-      }
-
-      view.scrollDOM.scrollTo(newLeft, newTop);
-    });
-  });
-}
-
-function getReadOnlyTooltip(state: EditorState) {
-  if (!state.readOnly) {
-    return [];
-  }
-
-  return state.selection.ranges
-    .filter((range) => {
-      return range.empty;
-    })
-    .map((range) => {
-      return {
-        pos: range.head,
-        above: true,
-        strictSide: true,
-        arrow: true,
-        create: () => {
-          const divElement = document.createElement('div');
-          divElement.className = 'cm-readonly-tooltip';
-          divElement.textContent = 'Cannot edit file while AI response is being generated';
-
-          return { dom: divElement };
-        },
-      };
-    });
-}
