@@ -5,6 +5,7 @@ import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react'
 import type { Theme } from '~/lib/stores/theme';
 import { createScopedLogger } from '~/utils/logger';
 import { getTerminalTheme } from './theme';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 const logger = createScopedLogger('Terminal');
 
@@ -25,6 +26,7 @@ export const Terminal = memo(
     const terminalElementRef = useRef<HTMLDivElement>(null);
     const terminalRef = useRef<XTerm>();
     const fitAddonRef = useRef<FitAddon>();
+    const inputBufferRef = useRef<string>('');
 
     useEffect(() => {
       const element = terminalElementRef.current!;
@@ -51,6 +53,40 @@ export const Terminal = memo(
       terminal.loadAddon(fitAddon);
       terminal.loadAddon(webLinksAddon);
       terminal.open(element);
+
+      // Handle user input
+      terminal.onData((data) => {
+        if (readonly) return;
+
+        // Handle special keys
+        if (data === '\r') { // Enter key
+          const command = inputBufferRef.current.trim();
+          if (command) {
+            terminal.write('\r\n');
+            workbenchStore.handleTerminalInput(command);
+          }
+          inputBufferRef.current = '';
+          return;
+        }
+
+        if (data === '\u007f') { // Backspace
+          if (inputBufferRef.current.length > 0) {
+            inputBufferRef.current = inputBufferRef.current.slice(0, -1);
+            terminal.write('\b \b');
+          }
+          return;
+        }
+
+        if (data === '\u0003') { // Ctrl+C
+          terminal.write('^C\r\n$ ');
+          inputBufferRef.current = '';
+          return;
+        }
+
+        // Regular input
+        inputBufferRef.current += data;
+        terminal.write(data);
+      });
 
       // Initial fit
       setTimeout(() => {
