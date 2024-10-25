@@ -46,6 +46,7 @@ export const Preview = memo(() => {
     if (previews.length > 1 && !hasSelectedPreview.current) {
       const minPortIndex = previews.reduce(findMinPortIndex, 0);
       setActivePreviewIndex(minPortIndex);
+      hasSelectedPreview.current = true;
     }
   }, [previews, findMinPortIndex]);
 
@@ -76,8 +77,8 @@ export const Preview = memo(() => {
         <div className="z-iframe-overlay w-full h-full absolute" onClick={handlePortDropdownClick} />
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-1.5">
-        <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
-        <div className="flex items-center gap-1 flex-grow bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-3 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
+        <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} title="Reload preview" />
+        <div className="flex items-center gap-1 flex-grow bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-3 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
           <input
             ref={inputRef}
             className="w-full bg-transparent outline-none"
@@ -85,6 +86,8 @@ export const Preview = memo(() => {
             value={url}
             onChange={handleUrlChange}
             onKeyDown={handleKeyDown}
+            placeholder="Enter URL"
+            aria-label="Preview URL"
           />
         </div>
         {previews.length > 1 && (
@@ -100,9 +103,17 @@ export const Preview = memo(() => {
       </div>
       <div className="flex-1 border-t border-bolt-elements-borderColor">
         {activePreview ? (
-          <iframe ref={iframeRef} className="border-none w-full h-full bg-white" src={iframeUrl} />
+          <iframe 
+            ref={iframeRef} 
+            className="border-none w-full h-full bg-white" 
+            src={iframeUrl}
+            title="Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms"
+          />
         ) : (
-          <div className="flex w-full h-full justify-center items-center bg-white">No preview available</div>
+          <div className="flex w-full h-full justify-center items-center bg-white text-gray-500">
+            No preview available
+          </div>
         )}
       </div>
     </div>

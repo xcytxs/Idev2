@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
 
+// Define the expected result structure for our tests
 interface ExpectedResult {
   output: string;
   callbacks?: {
@@ -12,13 +13,18 @@ interface ExpectedResult {
 }
 
 describe('StreamingMessageParser', () => {
+  let parser: StreamingMessageParser;
+
+  // Initialize a new parser before each test
+  beforeEach(() => {
+    parser = new StreamingMessageParser();
+  });
+
   it('should pass through normal text', () => {
-    const parser = new StreamingMessageParser();
     expect(parser.parse('test_id', 'Hello, world!')).toBe('Hello, world!');
   });
 
   it('should allow normal HTML tags', () => {
-    const parser = new StreamingMessageParser();
     expect(parser.parse('test_id', 'Hello <strong>world</strong>!')).toBe('Hello <strong>world</strong>!');
   });
 
@@ -154,15 +160,14 @@ describe('StreamingMessageParser', () => {
   });
 });
 
+// Helper function to run tests with various inputs and expected results
 function runTest(input: string | string[], outputOrExpectedResult: string | ExpectedResult) {
-  let expected: ExpectedResult;
+  // Normalize the expected result
+  const expected: ExpectedResult = typeof outputOrExpectedResult === 'string' 
+    ? { output: outputOrExpectedResult } 
+    : outputOrExpectedResult;
 
-  if (typeof outputOrExpectedResult === 'string') {
-    expected = { output: outputOrExpectedResult };
-  } else {
-    expected = outputOrExpectedResult;
-  }
-
+  // Mock callback functions
   const callbacks = {
     onArtifactOpen: vi.fn<ArtifactCallback>((data) => {
       expect(data).toMatchSnapshot('onArtifactOpen');
@@ -178,30 +183,21 @@ function runTest(input: string | string[], outputOrExpectedResult: string | Expe
     }),
   };
 
+  // Create a new parser instance with mocked callbacks
   const parser = new StreamingMessageParser({
     artifactElement: () => '',
     callbacks,
   });
 
-  let message = '';
-
-  let result = '';
-
+  // Parse the input chunks and accumulate the result
   const chunks = Array.isArray(input) ? input : input.split('');
+  const result = chunks.reduce((acc, chunk) => acc + parser.parse('message_1', chunk), '');
 
-  for (const chunk of chunks) {
-    message += chunk;
+  // Verify that callbacks were called the expected number of times
+  Object.entries(expected.callbacks || {}).forEach(([name, count]) => {
+    expect(callbacks[name as keyof typeof callbacks]).toHaveBeenCalledTimes(count || 0);
+  });
 
-    result += parser.parse('message_1', message);
-  }
-
-  for (const name in expected.callbacks) {
-    const callbackName = name;
-
-    expect(callbacks[callbackName as keyof typeof callbacks]).toHaveBeenCalledTimes(
-      expected.callbacks[callbackName as keyof typeof expected.callbacks] ?? 0,
-    );
-  }
-
+  // Check if the final output matches the expected output
   expect(result).toEqual(expected.output);
 }
