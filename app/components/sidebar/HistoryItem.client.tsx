@@ -1,5 +1,6 @@
 import type { ChatHistoryItem } from '~/lib/persistence';
 import { formatDistanceToNow } from 'date-fns';
+import { useEffect, useState } from 'react';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -7,7 +8,27 @@ interface HistoryItemProps {
 }
 
 export function HistoryItem({ item, onDelete }: HistoryItemProps) {
-  const lastSavedTime = item.lastSaved ? formatDistanceToNow(new Date(item.lastSaved), { addSuffix: true }) : null;
+  const [lastSavedDisplay, setLastSavedDisplay] = useState<string>();
+
+  useEffect(() => {
+    if (!item.lastSaved) {
+      setLastSavedDisplay(undefined);
+      return;
+    }
+
+    // Update display time immediately
+    const updateDisplayTime = () => {
+      setLastSavedDisplay(formatDistanceToNow(new Date(item.lastSaved!), { addSuffix: true }));
+    };
+    updateDisplayTime();
+
+    // Update display time every minute
+    const interval = setInterval(updateDisplayTime, 60000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [item.lastSaved]);
 
   return (
     <div className="group relative">
@@ -17,9 +38,12 @@ export function HistoryItem({ item, onDelete }: HistoryItemProps) {
       >
         <span className="inline-block i-bolt:chat" />
         <span className="flex-1 truncate">{item.description}</span>
-        {lastSavedTime && (
-          <span className="text-xs text-bolt-elements-textTertiary" title={`Last saved ${lastSavedTime}`}>
-            {lastSavedTime}
+        {lastSavedDisplay && (
+          <span 
+            className="text-xs text-bolt-elements-textTertiary" 
+            title={`Last saved ${lastSavedDisplay}`}
+          >
+            {lastSavedDisplay}
           </span>
         )}
       </a>

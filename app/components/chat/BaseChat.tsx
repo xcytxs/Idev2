@@ -10,6 +10,7 @@ import { classNames } from '~/utils/classNames';
 import { MODEL_LIST, DEFAULT_PROVIDER } from '~/utils/constants';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
+import { LastSavedIndicator } from './LastSavedIndicator.client';
 import { useState } from 'react';
 import { ImageUpload } from './ImageUpload';
 
@@ -235,6 +236,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         )}
                       </IconButton>
                       <ImageUpload onImageUpload={onImageUpload} />
+                      <ClientOnly>
+                        {() => <LastSavedIndicator />}
+                      </ClientOnly>
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">

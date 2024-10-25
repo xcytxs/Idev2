@@ -1,20 +1,32 @@
 import type { Message } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
+import type { FileMap } from '~/lib/stores/files';
 
 const logger = createScopedLogger('ChatHistory');
 
 // Check if IndexedDB is available
 function isIndexedDBAvailable(): boolean {
+  // Only check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
   try {
-    return typeof window !== 'undefined' && 'indexedDB' in window;
-  } catch {
+    return 'indexedDB' in window;
+  } catch (error) {
+    logger.error('Error checking IndexedDB availability:', error);
     return false;
   }
 }
 
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
+  // Only attempt to open database in browser environment
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
   if (!isIndexedDBAvailable()) {
     logger.warn('IndexedDB is not available');
     return undefined;
@@ -32,6 +44,7 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
             const store = db.createObjectStore('chats', { keyPath: 'id' });
             store.createIndex('id', 'id', { unique: true });
             store.createIndex('urlId', 'urlId', { unique: true });
+            store.createIndex('lastSaved', 'lastSaved'); // New index for last saved state
           }
 
           if (!db.objectStoreNames.contains('promptCache')) {
@@ -84,6 +97,8 @@ export async function setMessages(
   messages: Message[],
   urlId?: string,
   description?: string,
+  lastSaved?: string,
+  files?: FileMap,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
@@ -95,10 +110,15 @@ export async function setMessages(
         messages,
         urlId,
         description,
+        lastSaved,
+        files,
         timestamp: new Date().toISOString(),
       });
 
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        logger.info('Messages saved successfully:', { id, lastSaved }); // Log saved messages
+        resolve();
+      };
       request.onerror = () => {
         logger.error('Error setting messages:', request.error);
         reject(request.error);
@@ -111,7 +131,9 @@ export async function setMessages(
 }
 
 export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
-  return (await getMessagesById(db, id)) || (await getMessagesByUrlId(db, id));
+  const messages = await (await getMessagesById(db, id)) || (await getMessagesByUrlId(db, id));
+  logger.info('Retrieved messages:', messages); // Log retrieved messages
+  return messages;
 }
 
 export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
