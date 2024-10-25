@@ -33,6 +33,7 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
   #currentTerminal: XTerm | null = null;
+  #currentRunner: ActionRunner | null = null;
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -49,6 +50,8 @@ export class WorkbenchStore {
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
     }
+    // Initialize a default action runner for terminal commands
+    this.#currentRunner = new ActionRunner(webcontainer);
   }
 
   get terminal() {
@@ -95,6 +98,13 @@ export class WorkbenchStore {
     this.#currentTerminal = terminal;
     // Show terminal and workbench when attaching a terminal
     this.toggleTerminal(true);
+  }
+
+  // Handle terminal input
+  async handleTerminalInput(command: string) {
+    if (this.#currentRunner) {
+      await this.#currentRunner.handleTerminalInput(command);
+    }
   }
 
   onTerminalResize(cols: number, rows: number) {
