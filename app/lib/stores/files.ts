@@ -47,6 +47,11 @@ export class FilesStore {
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
 
+  /**
+   * Event emitter for real-time file updates
+   */
+  onFileUpdate?: (filePath: string, content: string) => void;
+
   get filesCount() {
     return this.#size;
   }
@@ -80,7 +85,25 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
-  async saveFile(filePath: string, content: string) {
+  async createFolderIfNeeded(filePath: string) {
+    const webcontainer = await this.#webcontainer;
+    const folder = nodePath.dirname(filePath);
+    
+    if (folder !== '.') {
+      try {
+        const relativePath = nodePath.relative(webcontainer.workdir, folder);
+        await webcontainer.fs.mkdir(relativePath, { recursive: true });
+        // Add folder to files map
+        this.files.setKey(folder, { type: 'folder' });
+        logger.info('Created folder', folder);
+      } catch (error) {
+        logger.error('Failed to create folder\n\n', error);
+        throw error;
+      }
+    }
+  }
+
+  async streamToFile(filePath: string, content: string, final: boolean = false) {
     const webcontainer = await this.#webcontainer;
 
     try {
@@ -90,27 +113,36 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
       }
 
+      // Create folder if needed
+      await this.createFolderIfNeeded(filePath);
+
       const oldContent = this.getFile(filePath)?.content;
 
-      if (!oldContent) {
-        unreachable('Expected content to be defined');
-      }
-
+      // Write the file
       await webcontainer.fs.writeFile(relativePath, content);
 
-      if (!this.#modifiedFiles.has(filePath)) {
+      // Track modifications if this is the final write
+      if (final && oldContent && !this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, oldContent);
       }
 
-      // we immediately update the file and don't rely on the `change` event coming from the watcher
+      // Update the file in our store
       this.files.setKey(filePath, { type: 'file', content, isBinary: false });
+
+      // Emit update event
+      if (this.onFileUpdate) {
+        this.onFileUpdate(filePath, content);
+      }
 
       logger.info('File updated');
     } catch (error) {
       logger.error('Failed to update file content\n\n', error);
-
       throw error;
     }
+  }
+
+  async saveFile(filePath: string, content: string) {
+    return this.streamToFile(filePath, content, true);
   }
 
   async #init() {
@@ -167,6 +199,11 @@ export class FilesStore {
           }
 
           this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
+
+          // Emit update event
+          if (this.onFileUpdate) {
+            this.onFileUpdate(sanitizedPath, content);
+          }
 
           break;
         }

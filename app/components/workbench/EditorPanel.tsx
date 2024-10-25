@@ -40,8 +40,13 @@ interface EditorPanelProps {
 const MAX_TERMINALS = 3;
 const DEFAULT_TERMINAL_SIZE = 25;
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
+const DEFAULT_SIDEBAR_SIZE = 20;
 
-const editorSettings: EditorSettings = { tabSize: 2 };
+const editorSettings: EditorSettings = { 
+  fontSize: '14px',
+  gutterFontSize: '12px',
+  tabSize: 2,
+};
 
 export const EditorPanel = memo(
   ({
@@ -67,6 +72,7 @@ export const EditorPanel = memo(
 
     const [activeTerminal, setActiveTerminal] = useState(0);
     const [terminalCount, setTerminalCount] = useState(1);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -126,11 +132,20 @@ export const EditorPanel = memo(
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={20} minSize={10} collapsible>
+            <Panel 
+              defaultSize={DEFAULT_SIDEBAR_SIZE} 
+              minSize={10} 
+              collapsible
+              onCollapse={() => setSidebarCollapsed(true)}
+              onExpand={() => setSidebarCollapsed(false)}
+            >
               <div className="flex flex-col border-r border-bolt-elements-borderColor h-full">
                 <PanelHeader>
-                  <div className="i-ph:tree-structure-duotone shrink-0" />
-                  Files
+                  <div className={classNames(
+                    'i-ph:tree-structure-duotone shrink-0',
+                    sidebarCollapsed ? 'rotate-90' : ''
+                  )} />
+                  {!sidebarCollapsed && 'Explorer'}
                 </PanelHeader>
                 <FileTree
                   className="h-full"
@@ -143,7 +158,7 @@ export const EditorPanel = memo(
                 />
               </div>
             </Panel>
-            <PanelResizeHandle />
+            <PanelResizeHandle className="w-1 hover:w-1 active:w-1 bg-bolt-elements-borderColor" />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
@@ -179,7 +194,7 @@ export const EditorPanel = memo(
             </Panel>
           </PanelGroup>
         </Panel>
-        <PanelResizeHandle />
+        <PanelResizeHandle className="h-1 hover:h-1 active:h-1 bg-bolt-elements-borderColor" />
         <Panel
           ref={terminalPanelRef}
           defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
@@ -239,7 +254,7 @@ export const EditorPanel = memo(
                       hidden: !isActive,
                     })}
                     ref={(ref) => {
-                      terminalRefs.current.push(ref);
+                      terminalRefs.current[index] = ref;
                     }}
                     onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
                     onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
