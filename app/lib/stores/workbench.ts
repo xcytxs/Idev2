@@ -12,6 +12,7 @@ import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Octokit } from "@octokit/rest";
+import { Terminal as XTerm } from '@xterm/xterm';
 
 export interface ArtifactState {
   id: string;
@@ -31,6 +32,7 @@ export class WorkbenchStore {
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
+  #currentTerminal: XTerm | null = null;
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -47,6 +49,10 @@ export class WorkbenchStore {
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
     }
+  }
+
+  get terminal() {
+    return this.#currentTerminal;
   }
 
   get previews() {
@@ -79,10 +85,16 @@ export class WorkbenchStore {
 
   toggleTerminal(value?: boolean) {
     this.#terminalStore.toggleTerminal(value);
+    // If we're showing the terminal, also show the workbench
+    if (value) {
+      this.showWorkbench.set(true);
+    }
   }
 
-  attachTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachTerminal(terminal);
+  attachTerminal(terminal: XTerm) {
+    this.#currentTerminal = terminal;
+    // Show terminal and workbench when attaching a terminal
+    this.toggleTerminal(true);
   }
 
   onTerminalResize(cols: number, rows: number) {
@@ -234,6 +246,9 @@ export class WorkbenchStore {
       closed: false,
       runner: new ActionRunner(webcontainer),
     });
+
+    // Show terminal and workbench when adding an artifact
+    this.toggleTerminal(true);
   }
 
   updateArtifact({ messageId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
@@ -256,6 +271,8 @@ export class WorkbenchStore {
     }
 
     artifact.runner.addAction(data);
+    // Show terminal and workbench when adding an action
+    this.toggleTerminal(true);
   }
 
   async runAction(data: ActionCallbackData) {
@@ -268,6 +285,8 @@ export class WorkbenchStore {
     }
 
     artifact.runner.runAction(data);
+    // Show terminal and workbench when running an action
+    this.toggleTerminal(true);
   }
 
   #getArtifact(id: string) {
@@ -336,7 +355,6 @@ export class WorkbenchStore {
   }
 
   async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {
-    
     try {
       // Get the GitHub auth token from environment variables
       const githubToken = ghToken;
@@ -351,18 +369,19 @@ export class WorkbenchStore {
       const octokit = new Octokit({ auth: githubToken });
   
       // Check if the repository already exists before creating it
-      let repo
+      let repoData;
       try {
-        repo = await octokit.repos.get({ owner: owner, repo: repoName });
+        const { data } = await octokit.repos.get({ owner, repo: repoName });
+        repoData = data;
       } catch (error) {
         if (error instanceof Error && 'status' in error && error.status === 404) {
           // Repository doesn't exist, so create a new one
-          const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
+          const { data } = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
             private: false,
             auto_init: true,
           });
-          repo = newRepo;
+          repoData = data;
         } else {
           console.log('cannot create repo!');
           throw error; // Some other error occurred
@@ -380,8 +399,8 @@ export class WorkbenchStore {
         Object.entries(files).map(async ([filePath, dirent]) => {
           if (dirent?.type === 'file' && dirent.content) {
             const { data: blob } = await octokit.git.createBlob({
-              owner: repo.owner.login,
-              repo: repo.name,
+              owner: repoData.owner.login,
+              repo: repoData.name,
               content: Buffer.from(dirent.content).toString('base64'),
               encoding: 'base64',
             });
@@ -396,18 +415,18 @@ export class WorkbenchStore {
         throw new Error('No valid files to push');
       }
   
-      // Get the latest commit SHA (assuming main branch, update dynamically if needed)
+      // Get the latest commit SHA
       const { data: ref } = await octokit.git.getRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
+        owner: repoData.owner.login,
+        repo: repoData.name,
+        ref: `heads/${repoData.default_branch || 'main'}`,
       });
       const latestCommitSha = ref.object.sha;
   
       // Create a new tree
       const { data: newTree } = await octokit.git.createTree({
-        owner: repo.owner.login,
-        repo: repo.name,
+        owner: repoData.owner.login,
+        repo: repoData.name,
         base_tree: latestCommitSha,
         tree: validBlobs.map((blob) => ({
           path: blob!.path,
@@ -419,8 +438,8 @@ export class WorkbenchStore {
   
       // Create a new commit
       const { data: newCommit } = await octokit.git.createCommit({
-        owner: repo.owner.login,
-        repo: repo.name,
+        owner: repoData.owner.login,
+        repo: repoData.name,
         message: 'Initial commit from your app',
         tree: newTree.sha,
         parents: [latestCommitSha],
@@ -428,13 +447,13 @@ export class WorkbenchStore {
   
       // Update the reference
       await octokit.git.updateRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
+        owner: repoData.owner.login,
+        repo: repoData.name,
+        ref: `heads/${repoData.default_branch || 'main'}`,
         sha: newCommit.sha,
       });
   
-      alert(`Repository created and code pushed: ${repo.html_url}`);
+      alert(`Repository created and code pushed: ${repoData.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error instanceof Error ? error.message : String(error));
     }

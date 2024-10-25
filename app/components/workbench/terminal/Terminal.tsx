@@ -24,11 +24,13 @@ export const Terminal = memo(
   forwardRef<TerminalRef, TerminalProps>(({ className, theme, readonly, onTerminalReady, onTerminalResize }, ref) => {
     const terminalElementRef = useRef<HTMLDivElement>(null);
     const terminalRef = useRef<XTerm>();
+    const fitAddonRef = useRef<FitAddon>();
 
     useEffect(() => {
       const element = terminalElementRef.current!;
 
       const fitAddon = new FitAddon();
+      fitAddonRef.current = fitAddon;
       const webLinksAddon = new WebLinksAddon();
 
       const terminal = new XTerm({
@@ -38,6 +40,10 @@ export const Terminal = memo(
         theme: getTerminalTheme(readonly ? { cursor: '#00000000' } : {}),
         fontSize: 12,
         fontFamily: 'Menlo, courier-new, courier, monospace',
+        scrollback: 5000,
+        rows: 24,
+        cols: 80,
+        allowProposedApi: true
       });
 
       terminalRef.current = terminal;
@@ -45,6 +51,11 @@ export const Terminal = memo(
       terminal.loadAddon(fitAddon);
       terminal.loadAddon(webLinksAddon);
       terminal.open(element);
+
+      // Initial fit
+      setTimeout(() => {
+        fitAddon.fit();
+      }, 0);
 
       const resizeObserver = new ResizeObserver(() => {
         fitAddon.fit();
@@ -54,6 +65,11 @@ export const Terminal = memo(
       resizeObserver.observe(element);
 
       logger.info('Attach terminal');
+
+      // Clear terminal and show prompt
+      terminal.clear();
+      terminal.write('\x1b[2J\x1b[H');
+      terminal.write('\r\n$ ');
 
       onTerminalReady?.(terminal);
 
@@ -68,8 +84,14 @@ export const Terminal = memo(
 
       // we render a transparent cursor in case the terminal is readonly
       terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
-
       terminal.options.disableStdin = readonly;
+
+      // Refit terminal when theme changes
+      if (fitAddonRef.current) {
+        setTimeout(() => {
+          fitAddonRef.current?.fit();
+        }, 0);
+      }
     }, [theme, readonly]);
 
     useImperativeHandle(ref, () => {
@@ -77,6 +99,12 @@ export const Terminal = memo(
         reloadStyles: () => {
           const terminal = terminalRef.current!;
           terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
+          // Refit terminal when styles change
+          if (fitAddonRef.current) {
+            setTimeout(() => {
+              fitAddonRef.current?.fit();
+            }, 0);
+          }
         },
       };
     }, []);
