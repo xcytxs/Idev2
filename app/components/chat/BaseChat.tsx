@@ -87,6 +87,7 @@ interface BaseChatProps {
   enhancePrompt?: () => void;
   imageFile?: File | null;
   onImageUpload?: (file: File) => void;
+  isProcessingImage?: boolean;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -110,6 +111,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       handleStop,
       imageFile,
       onImageUpload,
+      isProcessingImage = false,
     },
     ref,
   ) => {
@@ -235,7 +237,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
-                      <ImageUpload onImageUpload={onImageUpload} />
+                      <ImageUpload onImageUpload={onImageUpload} isProcessing={isProcessingImage} />
                       <ClientOnly>
                         {() => <LastSavedIndicator />}
                       </ClientOnly>
@@ -249,7 +251,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
                 {imageFile && (
                   <div className="px-4 pb-2 text-sm text-bolt-elements-textSecondary">
-                    Image attached: {imageFile.name}
+                    Image attached: {imageFile.name} {isProcessingImage && "(Processing...)"}
                   </div>
                 )}
                 <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
