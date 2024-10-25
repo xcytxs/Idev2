@@ -10,6 +10,13 @@ import { Terminal as XTerm } from '@xterm/xterm';
 
 const logger = createScopedLogger('ActionRunner');
 
+const PROMPT = '\r\n\x1b[32m$ >>\x1b[0m '; // Green $ >> prompt
+const INPUT_PREFIX = '\x1b[32m>>\x1b[0m '; // Green >> for input line
+
+const writeInputLine = (terminal: XTerm) => {
+  terminal.write('\x1b[2K\r' + INPUT_PREFIX + ' ');
+};
+
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
 export type BaseActionState = BoltAction & {
@@ -99,7 +106,8 @@ export class ActionRunner {
         const terminal = workbenchStore.terminal;
         if (terminal) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          terminal.write(`\r\nError: ${errorMessage}\r\n$ `);
+          terminal.write(`\r\nError: ${errorMessage}${PROMPT}`);
+          writeInputLine(terminal);
         }
       });
   }
@@ -158,8 +166,8 @@ export class ActionRunner {
       checkTerminal();
     });
 
-    // Display the command being executed
-    terminal.write(`\r\n$ ${action.content}`);
+    // Display the command being executed with green prompt
+    terminal.write(`\r\n\x1b[32m$ >>\x1b[0m ${action.content}`);
 
     const process = await webcontainer.spawn('jsh', ['-c', action.content], {
       env: { npm_config_yes: true },
@@ -190,6 +198,7 @@ export class ActionRunner {
             if (this.#currentActionId) {
               this.#updateAction(this.#currentActionId, { status: 'complete' });
             }
+            writeInputLine(terminal);
           }
         },
       }),
@@ -199,13 +208,15 @@ export class ActionRunner {
     this.#currentProcess = null;
 
     if (exitCode !== 0) {
-      terminal.write('\r\n❌ Command failed\r\n$ ');
+      terminal.write(`\r\n❌ Command failed${PROMPT}`);
+      writeInputLine(terminal);
       throw new Error(`Command failed with exit code ${exitCode}`);
     }
 
     // Only show completion message for non-dev-server commands
     if (!action.content.includes('npm run dev')) {
-      terminal.write('\r\n✓ Command completed\r\n$ ');
+      terminal.write(`\r\n✓ Command completed${PROMPT}`);
+      writeInputLine(terminal);
     }
 
     logger.debug(`Process terminated with code ${exitCode}`);
@@ -247,19 +258,22 @@ export class ActionRunner {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error('Failed to create folder\n\n', error);
-        terminal.write(`\r\nError creating folder: ${errorMessage}\r\n$ `);
+        terminal.write(`\r\nError creating folder: ${errorMessage}${PROMPT}`);
+        writeInputLine(terminal);
         throw error;
       }
     }
 
     try {
       await webcontainer.fs.writeFile(action.filePath, action.content);
-      terminal.write(`\r\nCreated file: ${action.filePath}\r\n✓ File operation completed\r\n$ `);
+      terminal.write(`\r\nCreated file: ${action.filePath}\r\n✓ File operation completed${PROMPT}`);
+      writeInputLine(terminal);
       logger.debug(`File written ${action.filePath}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Failed to write file\n\n', error);
-      terminal.write(`\r\nError creating file: ${errorMessage}\r\n$ `);
+      terminal.write(`\r\nError creating file: ${errorMessage}${PROMPT}`);
+      writeInputLine(terminal);
       throw error;
     }
   }
@@ -299,6 +313,7 @@ export class ActionRunner {
               command.includes('npm run dev')) {
             terminal.write('\r\n✓ Development server is ready\r\n');
             readyMessageShown = true;
+            writeInputLine(terminal);
           }
         },
       }),
@@ -308,10 +323,12 @@ export class ActionRunner {
     this.#currentProcess = null;
 
     if (exitCode !== 0) {
-      terminal.write('\r\n❌ Command failed\r\n$ ');
+      terminal.write(`\r\n❌ Command failed${PROMPT}`);
+      writeInputLine(terminal);
     } else if (!command.includes('npm run dev')) {
       // Only show completion message for non-dev-server commands
-      terminal.write('\r\n✓ Command completed\r\n$ ');
+      terminal.write(`\r\n✓ Command completed${PROMPT}`);
+      writeInputLine(terminal);
     }
   }
 }
