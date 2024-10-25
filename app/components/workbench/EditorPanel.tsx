@@ -1,14 +1,10 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
-import {
-  CodeMirrorEditor,
-  type EditorDocument,
-  type EditorSettings,
-  type OnChangeCallback as OnEditorChange,
-  type OnSaveCallback as OnEditorSave,
-  type OnScrollCallback as OnEditorScroll,
-} from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { EditorDocument, EditorSettings } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnChangeCallback as OnEditorChange } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnSaveCallback as OnEditorSave } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { OnScrollCallback as OnEditorScroll } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
@@ -23,6 +19,7 @@ import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import { EditorSelection } from '@codemirror/state';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -69,10 +66,18 @@ export const EditorPanel = memo(
     const terminalRefs = useRef<Array<TerminalRef | null>>([]);
     const terminalPanelRef = useRef<ImperativePanelHandle>(null);
     const terminalToggledByShortcut = useRef(false);
+    const [Editor, setEditor] = useState<any>(null);
 
     const [activeTerminal, setActiveTerminal] = useState(0);
     const [terminalCount, setTerminalCount] = useState(1);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+      // Dynamically import Monaco editor on client-side only
+      import('~/components/editor/MonacoEditor').then((module) => {
+        setEditor(() => module.MonacoEditor);
+      });
+    }, []);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -128,6 +133,18 @@ export const EditorPanel = memo(
       }
     };
 
+    // Adapter functions to convert between CodeMirror and Monaco callback types
+    const handleEditorScroll = (scrollTop: number) => {
+      onEditorScroll?.({ top: scrollTop, left: 0 });
+    };
+
+    const handleEditorChange = (value: string) => {
+      onEditorChange?.({
+        selection: EditorSelection.single(0),
+        content: value
+      });
+    };
+
     return (
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
@@ -180,16 +197,20 @@ export const EditorPanel = memo(
                 )}
               </PanelHeader>
               <div className="h-full flex-1 overflow-hidden">
-                <CodeMirrorEditor
-                  theme={theme}
-                  editable={!isStreaming && editorDocument !== undefined}
-                  settings={editorSettings}
-                  doc={editorDocument}
-                  autoFocusOnDocumentChange={!isMobile()}
-                  onScroll={onEditorScroll}
-                  onChange={onEditorChange}
-                  onSave={onFileSave}
-                />
+                {Editor ? (
+                  <Editor
+                    theme={theme}
+                    editable={!isStreaming && editorDocument !== undefined}
+                    settings={editorSettings}
+                    doc={editorDocument}
+                    autoFocusOnDocumentChange={!isMobile()}
+                    onScroll={handleEditorScroll}
+                    onChange={handleEditorChange}
+                    onSave={onFileSave}
+                  />
+                ) : (
+                  <div>Loading editor...</div>
+                )}
               </div>
             </Panel>
           </PanelGroup>
