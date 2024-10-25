@@ -7,11 +7,12 @@ import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { Terminal as XTerm } from '@xterm/xterm';
+import { generateCode } from './code-generator';
 
 const logger = createScopedLogger('ActionRunner');
 
-const PROMPT = '\r\n\x1b[32m$ >>\x1b[0m '; // Green $ >> prompt
-const INPUT_PREFIX = '\x1b[32m>>\x1b[0m '; // Green >> for input line
+const PROMPT = '\r\n\x1b[32m$ >>\x1b[0m ';
+const INPUT_PREFIX = '\x1b[32m>>\x1b[0m ';
 
 const writeInputLine = (terminal: XTerm) => {
   terminal.write('\x1b[2K\r' + INPUT_PREFIX + ' ');
@@ -61,7 +62,6 @@ export class ActionRunner {
     const action = actions[actionId];
 
     if (action) {
-      // action already added
       return;
     }
 
@@ -130,15 +130,12 @@ export class ActionRunner {
         }
       }
 
-      // Don't update status for npm run dev - it will be updated when server is ready
       if (!(action.type === 'shell' && action.content.includes('npm run dev'))) {
         this.#updateAction(actionId, { status: action.abortSignal.aborted ? 'aborted' : 'complete' });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.#updateAction(actionId, { status: 'failed', error: errorMessage });
-
-      // re-throw the error to be caught in the promise chain
       throw error;
     }
   }
@@ -149,11 +146,8 @@ export class ActionRunner {
     }
 
     const webcontainer = await this.#webcontainer;
-
-    // Show terminal before running command
     workbenchStore.toggleTerminal(true);
 
-    // Wait for terminal to be ready
     const terminal = await new Promise<XTerm>((resolve) => {
       const checkTerminal = () => {
         const term = workbenchStore.terminal;
@@ -166,7 +160,6 @@ export class ActionRunner {
       checkTerminal();
     });
 
-    // Display the command being executed with green prompt
     terminal.write(`\r\n\x1b[32m$ >>\x1b[0m ${action.content}`);
 
     const process = await webcontainer.spawn('jsh', ['-c', action.content], {
@@ -179,7 +172,6 @@ export class ActionRunner {
       process.kill();
     });
 
-    // Set up a flag to track if we've shown the ready message
     let readyMessageShown = false;
 
     process.output.pipeTo(
@@ -188,13 +180,11 @@ export class ActionRunner {
           console.log(data);
           terminal.write(data);
 
-          // Check for dev server ready message
           if (!readyMessageShown && 
               (data.includes('Local:') || data.includes('localhost:')) && 
               action.content.includes('npm run dev')) {
             terminal.write('\r\n✓ Development server is ready\r\n');
             readyMessageShown = true;
-            // Update the action status to complete when dev server is ready
             if (this.#currentActionId) {
               this.#updateAction(this.#currentActionId, { status: 'complete' });
             }
@@ -213,7 +203,6 @@ export class ActionRunner {
       throw new Error(`Command failed with exit code ${exitCode}`);
     }
 
-    // Only show completion message for non-dev-server commands
     if (!action.content.includes('npm run dev')) {
       terminal.write(`\r\n✓ Command completed${PROMPT}`);
       writeInputLine(terminal);
@@ -228,11 +217,8 @@ export class ActionRunner {
     }
 
     const webcontainer = await this.#webcontainer;
-
-    // Show terminal before creating file
     workbenchStore.toggleTerminal(true);
 
-    // Wait for terminal to be ready
     const terminal = await new Promise<XTerm>((resolve) => {
       const checkTerminal = () => {
         const term = workbenchStore.terminal;
@@ -245,29 +231,20 @@ export class ActionRunner {
       checkTerminal();
     });
 
-    let folder = nodePath.dirname(action.filePath);
-
-    // remove trailing slashes
-    folder = folder.replace(/\/+$/g, '');
-
-    if (folder !== '.') {
-      try {
+    try {
+      const folder = nodePath.dirname(action.filePath);
+      if (folder !== '.') {
         await webcontainer.fs.mkdir(folder, { recursive: true });
         terminal.write(`\r\nCreated folder: ${folder}`);
-        logger.debug('Created folder', folder);
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error('Failed to create folder\n\n', error);
-        terminal.write(`\r\nError creating folder: ${errorMessage}${PROMPT}`);
-        writeInputLine(terminal);
-        throw error;
       }
-    }
 
-    try {
-      await webcontainer.fs.writeFile(action.filePath, action.content);
-      terminal.write(`\r\nCreated file: ${action.filePath}\r\n✓ File operation completed${PROMPT}`);
+      terminal.write(`\r\nCreating file: ${action.filePath}`);
+
+      await generateCode(webcontainer, action.filePath, action.content);
+
+      terminal.write(`\r\n✓ File operation completed${PROMPT}`);
       writeInputLine(terminal);
+
       logger.debug(`File written ${action.filePath}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -283,7 +260,6 @@ export class ActionRunner {
     this.actions.setKey(id, { ...actions[id], ...newState });
   }
 
-  // Handle user input from terminal
   async handleTerminalInput(command: string) {
     if (!command) return;
 
@@ -298,7 +274,6 @@ export class ActionRunner {
 
     this.#currentProcess = process;
 
-    // Set up a flag to track if we've shown the ready message
     let readyMessageShown = false;
 
     process.output.pipeTo(
@@ -307,7 +282,6 @@ export class ActionRunner {
           console.log(data);
           terminal.write(data);
 
-          // Check for dev server ready message
           if (!readyMessageShown && 
               (data.includes('Local:') || data.includes('localhost:')) && 
               command.includes('npm run dev')) {
@@ -326,7 +300,6 @@ export class ActionRunner {
       terminal.write(`\r\n❌ Command failed${PROMPT}`);
       writeInputLine(terminal);
     } else if (!command.includes('npm run dev')) {
-      // Only show completion message for non-dev-server commands
       terminal.write(`\r\n✓ Command completed${PROMPT}`);
       writeInputLine(terminal);
     }

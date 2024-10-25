@@ -27,6 +27,14 @@ export class EditorStore {
       import.meta.hot.data.documents = this.documents;
       import.meta.hot.data.selectedFile = this.selectedFile;
     }
+
+    // Subscribe to file updates
+    this.#filesStore.onFileUpdate = (filePath: string, content: string) => {
+      // Update document content
+      this.updateFile(filePath, content);
+      // Auto-switch to the file being edited
+      this.setSelectedFile(filePath);
+    };
   }
 
   setDocuments(files: FileMap) {
@@ -48,6 +56,7 @@ export class EditorStore {
                 value: dirent.content,
                 filePath,
                 scroll: previousDocument?.scroll,
+                isBinary: dirent.isBinary,
               },
             ] as [string, EditorDocument];
           })
@@ -57,7 +66,15 @@ export class EditorStore {
   }
 
   setSelectedFile(filePath: string | undefined) {
-    this.selectedFile.set(filePath);
+    // Don't switch if it's already selected
+    if (filePath === this.selectedFile.get()) {
+      return;
+    }
+
+    // Only switch to valid files
+    if (filePath && this.documents.get()[filePath]) {
+      this.selectedFile.set(filePath);
+    }
   }
 
   updateScrollPosition(filePath: string, position: ScrollPosition) {
@@ -74,12 +91,18 @@ export class EditorStore {
     });
   }
 
-  updateFile(filePath: string, newContent: string) {
+  updateFile(filePath: string, newContent: string, forceScrollTop: boolean = false) {
     const documents = this.documents.get();
-    const documentState = documents[filePath];
+    let documentState = documents[filePath];
 
+    // If the file doesn't exist yet, create it
     if (!documentState) {
-      return;
+      documentState = {
+        value: '',
+        filePath,
+        scroll: forceScrollTop ? { top: 0, left: 0 } : undefined,
+        isBinary: false, // Assume text files by default
+      };
     }
 
     const currentContent = documentState.value;
@@ -89,7 +112,27 @@ export class EditorStore {
       this.documents.setKey(filePath, {
         ...documentState,
         value: newContent,
+        scroll: forceScrollTop ? { top: 0, left: 0 } : documentState.scroll,
       });
     }
+  }
+
+  // Get a file's content, creating an empty document if it doesn't exist
+  getOrCreateFile(filePath: string): string {
+    const documents = this.documents.get();
+    const documentState = documents[filePath];
+
+    if (!documentState) {
+      // Create an empty document
+      this.documents.setKey(filePath, {
+        value: '',
+        filePath,
+        scroll: { top: 0, left: 0 },
+        isBinary: false, // Assume text files by default
+      });
+      return '';
+    }
+
+    return documentState.value;
   }
 }

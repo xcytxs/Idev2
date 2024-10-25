@@ -1,105 +1,54 @@
-import { LanguageDescription } from '@codemirror/language';
+import { javascript } from '@codemirror/lang-javascript';
+import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { python } from '@codemirror/lang-python';
+import type { Extension } from '@codemirror/state';
 
-export const supportedLanguages = [
-  LanguageDescription.of({
-    name: 'TS',
-    extensions: ['ts'],
-    async load() {
-      return import('@codemirror/lang-javascript').then((module) => module.javascript({ typescript: true }));
-    },
-  }),
-  LanguageDescription.of({
-    name: 'JS',
-    extensions: ['js', 'mjs', 'cjs'],
-    async load() {
-      return import('@codemirror/lang-javascript').then((module) => module.javascript());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'TSX',
-    extensions: ['tsx'],
-    async load() {
-      return import('@codemirror/lang-javascript').then((module) => module.javascript({ jsx: true, typescript: true }));
-    },
-  }),
-  LanguageDescription.of({
-    name: 'JSX',
-    extensions: ['jsx'],
-    async load() {
-      return import('@codemirror/lang-javascript').then((module) => module.javascript({ jsx: true }));
-    },
-  }),
-  LanguageDescription.of({
-    name: 'HTML',
-    extensions: ['html'],
-    async load() {
-      return import('@codemirror/lang-html').then((module) => module.html());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'CSS',
-    extensions: ['css'],
-    async load() {
-      return import('@codemirror/lang-css').then((module) => module.css());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'SASS',
-    extensions: ['sass'],
-    async load() {
-      return import('@codemirror/lang-sass').then((module) => module.sass({ indented: true }));
-    },
-  }),
-  LanguageDescription.of({
-    name: 'SCSS',
-    extensions: ['scss'],
-    async load() {
-      return import('@codemirror/lang-sass').then((module) => module.sass({ indented: false }));
-    },
-  }),
-  LanguageDescription.of({
-    name: 'JSON',
-    extensions: ['json'],
-    async load() {
-      return import('@codemirror/lang-json').then((module) => module.json());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'Markdown',
-    extensions: ['md'],
-    async load() {
-      return import('@codemirror/lang-markdown').then((module) => module.markdown());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'Wasm',
-    extensions: ['wat'],
-    async load() {
-      return import('@codemirror/lang-wast').then((module) => module.wast());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'Python',
-    extensions: ['py'],
-    async load() {
-      return import('@codemirror/lang-python').then((module) => module.python());
-    },
-  }),
-  LanguageDescription.of({
-    name: 'C++',
-    extensions: ['cpp'],
-    async load() {
-      return import('@codemirror/lang-cpp').then((module) => module.cpp());
-    },
-  }),
-];
+const languageMap: Record<string, () => Promise<Extension>> = {
+  // JavaScript/TypeScript
+  js: () => Promise.resolve(javascript({ typescript: false })),
+  jsx: () => Promise.resolve(javascript({ jsx: true })),
+  ts: () => Promise.resolve(javascript({ typescript: true })),
+  tsx: () => Promise.resolve(javascript({ typescript: true, jsx: true })),
+  mjs: () => Promise.resolve(javascript()),
+  cjs: () => Promise.resolve(javascript()),
 
-export async function getLanguage(fileName: string) {
-  const languageDescription = LanguageDescription.matchFilename(supportedLanguages, fileName);
+  // JSON
+  json: () => Promise.resolve(json()),
 
-  if (languageDescription) {
-    return await languageDescription.load();
+  // Markdown
+  md: () => Promise.resolve(markdown()),
+  markdown: () => Promise.resolve(markdown()),
+
+  // HTML
+  html: () => Promise.resolve(html()),
+  htm: () => Promise.resolve(html()),
+
+  // CSS
+  css: () => Promise.resolve(css()),
+  scss: () => Promise.resolve(css()),
+  sass: () => Promise.resolve(css()),
+  less: () => Promise.resolve(css()),
+
+  // Python
+  py: () => Promise.resolve(python()),
+  python: () => Promise.resolve(python()),
+};
+
+export async function getLanguage(filePath: string): Promise<Extension | undefined> {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (!extension) return undefined;
+
+  const loader = languageMap[extension];
+  if (!loader) return undefined;
+
+  try {
+    const language = await loader();
+    return language;
+  } catch (error) {
+    console.error('Failed to load language support:', error);
+    return undefined;
   }
-
-  return undefined;
 }
