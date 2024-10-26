@@ -11,6 +11,7 @@ import { MODEL_LIST, DEFAULT_PROVIDER } from '~/utils/constants';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
 import { useState } from 'react';
+import { APIKeyManager } from './APIKeyManager';
 
 import styles from './BaseChat.module.scss';
 
@@ -24,8 +25,7 @@ const EXAMPLE_PROMPTS = [
 
 const providerList = [...new Set(MODEL_LIST.map((model) => model.provider))]
 
-const ModelSelector = ({ model, setModel, modelList, providerList }) => {
-  const [provider, setProvider] = useState(DEFAULT_PROVIDER);
+const ModelSelector = ({ model, setModel, modelList, providerList, provider, setProvider }) => {
   return (
     <div className="mb-2 flex gap-2">
       <select 
@@ -108,6 +108,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    const [provider, setProvider] = useState(DEFAULT_PROVIDER);
+    const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+
+    const updateApiKey = (provider: string, key: string) => {
+      setApiKeys((prev) => ({ ...prev, [provider]: key }));
+    };
 
     return (
       <div
@@ -158,6 +164,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setModel={setModel}
                   modelList={MODEL_LIST}
                   providerList={providerList}
+                  provider={provider}
+                  setProvider={setProvider}
+                />
+                <APIKeyManager
+                  provider={provider}
+                  apiKey={apiKeys[provider] || ''}
+                  setApiKey={(key) => updateApiKey(provider, key)}
                 />
                 <div
                   className={classNames(
