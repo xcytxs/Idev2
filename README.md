@@ -18,7 +18,6 @@ This fork of Bolt.new allows you to choose the LLM that you use for each prompt!
 - ✅ Ability to sync files (one way sync) to local folder (@muzafferkadir)
 - ✅ Containerize the application with Docker for easy installation (@aaronbolton)
 - ✅ Publish projects directly to GitHub (@goncaloalves)
-- ✅ Ability to enter API keys in the UI (@ali00209)
 - ⬜ Prevent Bolt from rewriting files as often (Done but need to review PR still)
 - ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
 - ⬜ **HIGH PRIORITY** - Attach images to prompts
@@ -32,6 +31,7 @@ This fork of Bolt.new allows you to choose the LLM that you use for each prompt!
 - ⬜ Load local projects into the app
 - ⬜ Ability to revert code to earlier version
 - ⬜ Prompt caching
+- ⬜ Ability to enter API keys in the UI
 - ⬜ Have LLM plan the project in a MD file for better results/transparency
 
 # Bolt.new: AI-Powered Full-Stack Web Development in the Browser
