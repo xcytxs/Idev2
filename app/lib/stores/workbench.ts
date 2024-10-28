@@ -441,7 +441,7 @@ export class WorkbenchStore {
     }
   }
   async uploadFolder(files: FileList | null) {
-    if (!files) return;
+    if (!files || import.meta.env.SSR) return;
 
     const ignoredFiles = [
       '.git/',
