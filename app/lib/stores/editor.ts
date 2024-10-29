@@ -100,9 +100,11 @@ export class EditorStore {
 
       // Only mark as modified if it's an existing file
       if (this.#filesStore.isExistingFile(filePath)) {
+        // Update both unsavedFiles and modifiedFiles
         const newUnsavedFiles = new Set(workbenchStore.unsavedFiles.get());
         newUnsavedFiles.add(filePath);
         workbenchStore.unsavedFiles.set(newUnsavedFiles);
+        workbenchStore.modifiedFiles.add(filePath);
       }
 
       this.documents.setKey(filePath, {
@@ -116,9 +118,11 @@ export class EditorStore {
     const originalContent = this.#originalContent.get(filePath);
     if (originalContent) {
       this.updateFile(filePath, originalContent);
+      // Clear both unsavedFiles and modifiedFiles
       const newUnsavedFiles = new Set(workbenchStore.unsavedFiles.get());
       newUnsavedFiles.delete(filePath);
       workbenchStore.unsavedFiles.set(newUnsavedFiles);
+      workbenchStore.modifiedFiles.delete(filePath);
     }
   }
 }

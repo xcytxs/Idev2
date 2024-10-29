@@ -178,6 +178,7 @@ export class ActionRunner {
         const newUnsavedFiles = new Set(workbenchStore.unsavedFiles.get());
         newUnsavedFiles.add(action.filePath);
         workbenchStore.unsavedFiles.set(newUnsavedFiles);
+        workbenchStore.modifiedFiles.add(action.filePath);
         versionHistoryStore.addVersion(action.filePath, action.content, 'Modified through chat');
       } else {
         // This is a new file

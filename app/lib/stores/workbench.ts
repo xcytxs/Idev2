@@ -170,10 +170,11 @@ export class WorkbenchStore {
 
     await this.#filesStore.saveFile(filePath, document.value);
 
+    // Clear both unsavedFiles and modifiedFiles for the saved file
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
-
     this.unsavedFiles.set(newUnsavedFiles);
+    this.modifiedFiles.delete(filePath);
   }
 
   async saveCurrentDocument() {
