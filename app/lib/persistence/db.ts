@@ -4,14 +4,30 @@ import type { ChatHistoryItem } from './useChatHistory';
 
 const logger = createScopedLogger('ChatHistory');
 
+let dbInitAttempted = false;
+
 function isBrowserEnvironment(): boolean {
-  return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+  try {
+    return typeof window !== 'undefined' && 
+           typeof window.indexedDB !== 'undefined' && 
+           typeof window.IDBDatabase !== 'undefined' &&
+           typeof window.IDBTransaction !== 'undefined';
+  } catch (error) {
+    logger.error('Error checking browser environment:', error);
+    return false;
+  }
 }
 
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
+  if (dbInitAttempted) {
+    logger.debug('Database initialization already attempted');
+    return undefined;
+  }
+
+  dbInitAttempted = true;
+
   return new Promise((resolve) => {
     try {
-      // Check if we're in a browser environment with IndexedDB support
       if (!isBrowserEnvironment()) {
         logger.debug('Not in browser environment or IndexedDB not available');
         resolve(undefined);
@@ -36,13 +52,21 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
         const db = (event.target as IDBOpenDBRequest).result;
         logger.debug('Successfully opened database');
         
-        // Add error handler for database
-        db.onerror = (event: Event) => {
-          const target = event.target as IDBDatabase;
-          logger.error('Database error:', target.name);
-        };
-
-        resolve(db);
+        // Test if we can actually use the database
+        try {
+          const transaction = db.transaction(['chats'], 'readonly');
+          transaction.oncomplete = () => {
+            logger.debug('Database test successful');
+            resolve(db);
+          };
+          transaction.onerror = () => {
+            logger.error('Database test failed');
+            resolve(undefined);
+          };
+        } catch (error) {
+          logger.error('Error testing database:', error);
+          resolve(undefined);
+        }
       };
 
       request.onerror = (event: Event) => {

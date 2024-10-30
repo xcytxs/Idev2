@@ -2,9 +2,11 @@ import { useLoaderData, useNavigate } from '@remix-run/react';
 import { useState, useEffect } from 'react';
 import { atom } from 'nanostores';
 import type { Message } from 'ai';
-import { toast } from 'react-toastify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('ChatHistory');
 
 export interface ChatHistoryItem {
   id: string;
@@ -14,8 +16,9 @@ export interface ChatHistoryItem {
   timestamp: string;
 }
 
-// Remove environment check and persistence flag
+// Initialize database lazily when needed
 let db: IDBDatabase | undefined;
+let dbInitialized = false;
 
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
@@ -27,41 +30,53 @@ export function useChatHistory() {
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
-  const [dbInitialized, setDbInitialized] = useState<boolean>(false);
 
   // Initialize database when component mounts
   useEffect(() => {
     const initDb = async () => {
-      if (!db && !dbInitialized) {
-        db = await openDatabase();
-        setDbInitialized(true);
-      }
+      try {
+        // Only attempt to initialize once
+        if (!dbInitialized) {
+          logger.debug('Initializing database');
+          db = await openDatabase();
+          dbInitialized = true;
+        }
 
-      if (!db) {
-        setReady(true);
-        return;
-      }
+        // If we have a mixedId but no database, navigate home
+        if (mixedId && !db) {
+          logger.debug('No database available, navigating home');
+          navigate('/', { replace: true });
+          setReady(true);
+          return;
+        }
 
-      if (mixedId) {
-        try {
-          const storedMessages = await getMessages(db, mixedId);
-          if (storedMessages && storedMessages.messages.length > 0) {
-            setInitialMessages(storedMessages.messages);
-            setUrlId(storedMessages.urlId);
-            description.set(storedMessages.description);
-            chatId.set(storedMessages.id);
-          } else {
+        // If we have both mixedId and database, try to load messages
+        if (mixedId && db) {
+          try {
+            const storedMessages = await getMessages(db, mixedId);
+            if (storedMessages && storedMessages.messages.length > 0) {
+              setInitialMessages(storedMessages.messages);
+              setUrlId(storedMessages.urlId);
+              description.set(storedMessages.description);
+              chatId.set(storedMessages.id);
+            } else {
+              navigate('/', { replace: true });
+            }
+          } catch (error) {
+            logger.error('Failed to load messages:', error);
             navigate('/', { replace: true });
           }
-        } catch (error) {
-          console.error('Failed to load messages:', error);
         }
+
+        setReady(true);
+      } catch (error) {
+        logger.error('Failed to initialize:', error);
+        setReady(true);
       }
-      setReady(true);
     };
 
     initDb();
-  }, [mixedId, navigate, dbInitialized]);
+  }, [mixedId, navigate]);
 
   return {
     ready: !mixedId || ready,
@@ -71,31 +86,31 @@ export function useChatHistory() {
         return;
       }
 
-      const { firstArtifact } = workbenchStore;
-
-      if (!urlId && firstArtifact?.id) {
-        const newUrlId = await getUrlId(db, firstArtifact.id);
-        navigateChat(newUrlId);
-        setUrlId(newUrlId);
-      }
-
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
-      }
-
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
-        chatId.set(nextId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
-      }
-
       try {
+        const { firstArtifact } = workbenchStore;
+
+        if (!urlId && firstArtifact?.id) {
+          const newUrlId = await getUrlId(db, firstArtifact.id);
+          navigateChat(newUrlId);
+          setUrlId(newUrlId);
+        }
+
+        if (!description.get() && firstArtifact?.title) {
+          description.set(firstArtifact?.title);
+        }
+
+        if (initialMessages.length === 0 && !chatId.get()) {
+          const nextId = await getNextId(db);
+          chatId.set(nextId);
+
+          if (!urlId) {
+            navigateChat(nextId);
+          }
+        }
+
         await setMessages(db, chatId.get() as string, messages, urlId, description.get());
       } catch (error) {
-        console.error('Failed to store messages:', error);
+        logger.error('Failed to store messages:', error);
       }
     },
   };
