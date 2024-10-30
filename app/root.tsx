@@ -53,9 +53,81 @@ const inlineThemeCode = stripIndents`
 
   // Initialize IndexedDB early
   if (typeof window !== 'undefined' && window.indexedDB) {
-    const request = window.indexedDB.open('boltHistory', 1);
-    request.onerror = () => console.error('Failed to initialize IndexedDB');
-    request.onsuccess = () => console.debug('IndexedDB initialized');
+    window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+
+    // Check if we're in Chrome
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+
+    if (isChrome) {
+      // For Chrome, we need to be more careful with initialization
+      const testRequest = window.indexedDB.open('test', 1);
+      testRequest.onerror = () => {
+        window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+      };
+
+      testRequest.onsuccess = () => {
+        // Close and delete test database
+        const testDb = testRequest.result;
+        testDb.close();
+        const deleteRequest = window.indexedDB.deleteDatabase('test');
+        
+        deleteRequest.onsuccess = () => {
+          // Now try to open the actual database
+          const request = window.indexedDB.open('boltHistory', 1);
+          
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('chats')) {
+              const store = db.createObjectStore('chats', { keyPath: 'id' });
+              store.createIndex('id', 'id', { unique: true });
+              store.createIndex('urlId', 'urlId', { unique: true });
+            }
+          };
+
+          request.onsuccess = (event) => {
+            const db = event.target.result;
+            
+            // Test if we can actually use the database
+            try {
+              const transaction = db.transaction(['chats'], 'readonly');
+              transaction.oncomplete = () => {
+                window.__BOLT_PERSISTENCE_AVAILABLE__ = true;
+              };
+              transaction.onerror = () => {
+                window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+              };
+            } catch (error) {
+              window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+            }
+          };
+
+          request.onerror = () => {
+            window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+          };
+        };
+
+        deleteRequest.onerror = () => {
+          window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+        };
+      };
+    } else {
+      // For other browsers, use the standard approach
+      const request = window.indexedDB.open('boltHistory', 1);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('chats')) {
+          const store = db.createObjectStore('chats', { keyPath: 'id' });
+          store.createIndex('id', 'id', { unique: true });
+          store.createIndex('urlId', 'urlId', { unique: true });
+        }
+      };
+      request.onsuccess = () => {
+        window.__BOLT_PERSISTENCE_AVAILABLE__ = true;
+      };
+      request.onerror = () => {
+        window.__BOLT_PERSISTENCE_AVAILABLE__ = false;
+      };
+    }
   }
 `;
 
@@ -87,4 +159,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return <Outlet />;
+}
+
+// Add type declaration
+declare global {
+  interface Window {
+    __BOLT_PERSISTENCE_AVAILABLE__: boolean;
+  }
 }
