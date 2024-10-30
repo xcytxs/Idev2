@@ -19,9 +19,28 @@ export interface ChatHistoryItem {
 // Initialize database lazily when needed
 let db: IDBDatabase | undefined;
 let dbInitialized = false;
+let dbInitializing = false;
 
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
+
+async function initializeDb() {
+  if (dbInitialized || dbInitializing) {
+    return db;
+  }
+
+  dbInitializing = true;
+  try {
+    db = await openDatabase();
+    dbInitialized = true;
+    logger.debug('Database initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize database:', error);
+  } finally {
+    dbInitializing = false;
+  }
+  return db;
+}
 
 export function useChatHistory() {
   const navigate = useNavigate();
@@ -33,49 +52,28 @@ export function useChatHistory() {
 
   // Initialize database when component mounts
   useEffect(() => {
-    const initDb = async () => {
+    const init = async () => {
       try {
-        // Only attempt to initialize once
-        if (!dbInitialized) {
-          logger.debug('Initializing database');
-          db = await openDatabase();
-          dbInitialized = true;
-        }
+        const database = await initializeDb();
 
-        // If we have a mixedId but no database, navigate home
-        if (mixedId && !db) {
-          logger.debug('No database available, navigating home');
-          navigate('/', { replace: true });
-          setReady(true);
-          return;
-        }
-
-        // If we have both mixedId and database, try to load messages
-        if (mixedId && db) {
-          try {
-            const storedMessages = await getMessages(db, mixedId);
-            if (storedMessages && storedMessages.messages.length > 0) {
-              setInitialMessages(storedMessages.messages);
-              setUrlId(storedMessages.urlId);
-              description.set(storedMessages.description);
-              chatId.set(storedMessages.id);
-            } else {
-              navigate('/', { replace: true });
-            }
-          } catch (error) {
-            logger.error('Failed to load messages:', error);
+        if (mixedId && database) {
+          const storedMessages = await getMessages(database, mixedId);
+          if (storedMessages && storedMessages.messages.length > 0) {
+            setInitialMessages(storedMessages.messages);
+            setUrlId(storedMessages.urlId);
+            description.set(storedMessages.description);
+            chatId.set(storedMessages.id);
+          } else {
             navigate('/', { replace: true });
           }
         }
-
-        setReady(true);
       } catch (error) {
         logger.error('Failed to initialize:', error);
-        setReady(true);
       }
+      setReady(true);
     };
 
-    initDb();
+    init();
   }, [mixedId, navigate]);
 
   return {

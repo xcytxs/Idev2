@@ -5,6 +5,7 @@ import type { ChatHistoryItem } from './useChatHistory';
 const logger = createScopedLogger('ChatHistory');
 
 let dbInitAttempted = false;
+let dbInitializing = false;
 
 function isBrowserEnvironment(): boolean {
   try {
@@ -19,17 +20,19 @@ function isBrowserEnvironment(): boolean {
 }
 
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
-  if (dbInitAttempted) {
-    logger.debug('Database initialization already attempted');
+  if (dbInitAttempted || dbInitializing) {
+    logger.debug('Database initialization already attempted or in progress');
     return undefined;
   }
 
-  dbInitAttempted = true;
+  dbInitializing = true;
 
   return new Promise((resolve) => {
     try {
       if (!isBrowserEnvironment()) {
         logger.debug('Not in browser environment or IndexedDB not available');
+        dbInitAttempted = true;
+        dbInitializing = false;
         resolve(undefined);
         return;
       }
@@ -57,14 +60,20 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
           const transaction = db.transaction(['chats'], 'readonly');
           transaction.oncomplete = () => {
             logger.debug('Database test successful');
+            dbInitAttempted = true;
+            dbInitializing = false;
             resolve(db);
           };
           transaction.onerror = () => {
             logger.error('Database test failed');
+            dbInitAttempted = true;
+            dbInitializing = false;
             resolve(undefined);
           };
         } catch (error) {
           logger.error('Error testing database:', error);
+          dbInitAttempted = true;
+          dbInitializing = false;
           resolve(undefined);
         }
       };
@@ -72,16 +81,22 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
       request.onerror = (event: Event) => {
         const error = (event.target as IDBOpenDBRequest).error;
         logger.error('Failed to open database:', error?.message || 'Unknown error');
+        dbInitAttempted = true;
+        dbInitializing = false;
         resolve(undefined);
       };
 
       request.onblocked = () => {
         logger.error('Database blocked');
+        dbInitAttempted = true;
+        dbInitializing = false;
         resolve(undefined);
       };
 
     } catch (error) {
       logger.error('Error initializing database:', error);
+      dbInitAttempted = true;
+      dbInitializing = false;
       resolve(undefined);
     }
   });
