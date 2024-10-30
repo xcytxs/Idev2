@@ -35,7 +35,7 @@ const ModelSelector = ({ model, setModel, modelList, currentProvider, onProvider
         onChange={(e) => {
           onProviderChange(e.target.value);
           const firstModel = [...modelList].find(m => m.provider == e.target.value);
-          setModel(firstModel ? firstModel.name : '');
+          if (setModel) setModel(firstModel ? firstModel.name : '');
         }}
         className="w-full p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none"
       >
@@ -47,7 +47,7 @@ const ModelSelector = ({ model, setModel, modelList, currentProvider, onProvider
       </select>
       <select
         value={model}
-        onChange={(e) => setModel(e.target.value)}
+        onChange={(e) => setModel && setModel(e.target.value)}
         className="w-full p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none"
       >
         {[...modelList].filter(e => e.provider == currentProvider && e.name).map((modelOption) => (
@@ -74,7 +74,7 @@ interface BaseChatProps {
   promptEnhanced?: boolean;
   input?: string;
   model: string;
-  setModel: (model: string) => void;
+  setModel?: (model: string) => void; // Make setModel optional
   handleStop?: () => void;
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -112,8 +112,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const savedProvider = localStorage.getItem('DEFAULT_PROVIDER');
       const savedModel = localStorage.getItem('DEFAULT_MODEL');
       if (savedProvider) setProvider(savedProvider);
-      if (savedModel) setModel(savedModel);
-    }, []);
+      if (savedModel && setModel) setModel(savedModel);
+    }, [setModel]);
 
     return (
       <div
@@ -289,7 +289,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             const savedProvider = localStorage.getItem('DEFAULT_PROVIDER');
             const savedModel = localStorage.getItem('DEFAULT_MODEL');
             if (savedProvider) setProvider(savedProvider);
-            if (savedModel) setModel(savedModel);
+            if (savedModel && setModel) setModel(savedModel);
           }}
         />
       </div>
