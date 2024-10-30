@@ -5,7 +5,7 @@ import type { Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
-import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { cssTransition, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
 import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
@@ -80,7 +80,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     api: '/api/chat',
     onError: (error) => {
       logger.error('Request failed\n\n', error);
-      toast.error('There was an error processing your request');
     },
     onFinish: () => {
       logger.debug('Finished streaming');
@@ -103,7 +102,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => {
         logger.error('Failed to store message history:', error);
-        // Don't show error toast for persistence failures
       });
     }
   }, [messages, isLoading, parseMessages, storeMessageHistory, initialMessages.length]);
