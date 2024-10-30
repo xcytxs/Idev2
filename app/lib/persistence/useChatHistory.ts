@@ -14,7 +14,7 @@ export interface ChatHistoryItem {
   timestamp: string;
 }
 
-// Initialize database lazily when component mounts
+// Remove environment check and persistence flag
 let db: IDBDatabase | undefined;
 
 export const chatId = atom<string | undefined>(undefined);
@@ -27,18 +27,18 @@ export function useChatHistory() {
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
+  const [dbInitialized, setDbInitialized] = useState<boolean>(false);
 
   // Initialize database when component mounts
   useEffect(() => {
     const initDb = async () => {
-      if (!db) {
+      if (!db && !dbInitialized) {
         db = await openDatabase();
+        setDbInitialized(true);
       }
-      
+
       if (!db) {
         setReady(true);
-        // Only show error if database failed to open
-        toast.error('Failed to initialize chat persistence');
         return;
       }
 
@@ -54,14 +54,14 @@ export function useChatHistory() {
             navigate('/', { replace: true });
           }
         } catch (error) {
-          toast.error((error as Error).message);
+          console.error('Failed to load messages:', error);
         }
       }
       setReady(true);
     };
 
     initDb();
-  }, [mixedId, navigate]);
+  }, [mixedId, navigate, dbInitialized]);
 
   return {
     ready: !mixedId || ready,
@@ -95,7 +95,7 @@ export function useChatHistory() {
       try {
         await setMessages(db, chatId.get() as string, messages, urlId, description.get());
       } catch (error) {
-        toast.error('Failed to save chat history');
+        console.error('Failed to store messages:', error);
       }
     },
   };

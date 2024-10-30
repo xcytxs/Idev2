@@ -28,9 +28,10 @@ export function Chat() {
 
   const { ready, initialMessages, storeMessageHistory } = useChatHistory();
 
-  return (
+  // Only show the chat component if we're ready
+  return ready ? (
     <>
-      {ready && <ChatImpl initialMessages={initialMessages} storeMessageHistory={storeMessageHistory} />}
+      <ChatImpl initialMessages={initialMessages} storeMessageHistory={storeMessageHistory} />
       <ToastContainer
         closeButton={({ closeToast }) => {
           return (
@@ -40,9 +41,6 @@ export function Chat() {
           );
         }}
         icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
           switch (type) {
             case 'success': {
               return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
@@ -51,7 +49,6 @@ export function Chat() {
               return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
             }
           }
-
           return undefined;
         }}
         position="bottom-right"
@@ -59,7 +56,7 @@ export function Chat() {
         transition={toastAnimation}
       />
     </>
-  );
+  ) : null;
 }
 
 interface ChatProps {
@@ -104,13 +101,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     parseMessages(messages, isLoading);
 
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages).catch((error) => {
+        logger.error('Failed to store message history:', error);
+        // Don't show error toast for persistence failures
+      });
     }
-  }, [messages, isLoading, parseMessages]);
+  }, [messages, isLoading, parseMessages, storeMessageHistory, initialMessages.length]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
-
     if (textarea) {
       textarea.scrollTop = textarea.scrollHeight;
     }
@@ -124,16 +123,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     const textarea = textareaRef.current;
-
     if (textarea) {
       textarea.style.height = 'auto';
-
       const scrollHeight = textarea.scrollHeight;
-
       textarea.style.height = `${Math.min(scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
       textarea.style.overflowY = scrollHeight > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden';
     }
-  }, [input, textareaRef]);
+  }, [input, TEXTAREA_MAX_HEIGHT]);
 
   const runAnimation = async () => {
     if (chatStarted) {
@@ -146,7 +142,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     ]);
 
     chatStore.setKey('started', true);
-
     setChatStarted(true);
   };
 
@@ -157,13 +152,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    /**
-     * @note (delm) Usually saving files shouldn't take long but it may take longer if there
-     * many unsaved files. In that case we need to block user input and show an indicator
-     * of some kind so the user is aware that something is happening. But I consider the
-     * happy case to be no unsaved files and I would expect users to save their changes
-     * before they send another message.
-     */
     await workbenchStore.saveAllFiles();
 
     const fileModifications = workbenchStore.getFileModifcations();
@@ -174,29 +162,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     if (fileModifications !== undefined) {
       const diff = fileModificationsToHTML(fileModifications);
-
-      /**
-       * If we have file modifications we append a new user message manually since we have to prefix
-       * the user input with the file modifications and we don't want the new user input to appear
-       * in the prompt. Using `append` is almost the same as `handleSubmit` except that we have to
-       * manually reset the input and we'd have to manually pass in file attachments. However, those
-       * aren't relevant here.
-       */
       append({ role: 'user', content: `[Model: ${model}]\n\n${diff}\n\n${_input}` });
-
-      /**
-       * After sending a new message we reset all modifications since the model
-       * should now be aware of all the changes.
-       */
       workbenchStore.resetAllFileModifications();
     } else {
       append({ role: 'user', content: `[Model: ${model}]\n\n${_input}` });
     }
 
     setInput('');
-
     resetEnhancer();
-
     textareaRef.current?.blur();
   };
 
@@ -224,7 +197,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         if (message.role === 'user') {
           return message;
         }
-
         return {
           ...message,
           content: parsedMessages[i] || '',
