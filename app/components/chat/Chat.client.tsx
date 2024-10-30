@@ -54,6 +54,8 @@ export function Chat() {
         position="bottom-right"
         pauseOnFocusLoss
         transition={toastAnimation}
+        hideProgressBar
+        autoClose={false}
       />
     </>
   ) : null;

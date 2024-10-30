@@ -31,9 +31,23 @@ async function initializeDb() {
 
   dbInitializing = true;
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      logger.debug('Not in browser environment');
+      return undefined;
+    }
+
+    // Check if persistence is available
+    if (!window.__BOLT_PERSISTENCE_AVAILABLE__) {
+      logger.debug('Persistence not available');
+      return undefined;
+    }
+
     db = await openDatabase();
-    dbInitialized = true;
-    logger.debug('Database initialized successfully');
+    if (db) {
+      dbInitialized = true;
+      logger.debug('Database initialized successfully');
+    }
   } catch (error) {
     logger.error('Failed to initialize database:', error);
   } finally {
@@ -54,23 +68,39 @@ export function useChatHistory() {
   useEffect(() => {
     const init = async () => {
       try {
+        // Always try to initialize the database
         const database = await initializeDb();
+        
+        // If we have a mixedId but no database, navigate home silently
+        if (mixedId && !database) {
+          navigate('/', { replace: true });
+          setReady(true);
+          return;
+        }
 
+        // If we have both mixedId and database, try to load messages
         if (mixedId && database) {
-          const storedMessages = await getMessages(database, mixedId);
-          if (storedMessages && storedMessages.messages.length > 0) {
-            setInitialMessages(storedMessages.messages);
-            setUrlId(storedMessages.urlId);
-            description.set(storedMessages.description);
-            chatId.set(storedMessages.id);
-          } else {
+          try {
+            const storedMessages = await getMessages(database, mixedId);
+            if (storedMessages && storedMessages.messages.length > 0) {
+              setInitialMessages(storedMessages.messages);
+              setUrlId(storedMessages.urlId);
+              description.set(storedMessages.description);
+              chatId.set(storedMessages.id);
+            } else {
+              navigate('/', { replace: true });
+            }
+          } catch (error) {
+            logger.error('Failed to load messages:', error);
             navigate('/', { replace: true });
           }
         }
+
+        setReady(true);
       } catch (error) {
         logger.error('Failed to initialize:', error);
+        setReady(true);
       }
-      setReady(true);
     };
 
     init();
@@ -118,4 +148,11 @@ function navigateChat(nextId: string) {
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;
   window.history.replaceState({}, '', url);
+}
+
+// Add type declaration
+declare global {
+  interface Window {
+    __BOLT_PERSISTENCE_AVAILABLE__: boolean;
+  }
 }

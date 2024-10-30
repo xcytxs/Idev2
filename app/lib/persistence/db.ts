@@ -37,62 +37,78 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
         return;
       }
 
-      const request = indexedDB.open('boltHistory', 1);
-
-      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        logger.debug('Upgrading database');
-
-        if (!db.objectStoreNames.contains('chats')) {
-          const store = db.createObjectStore('chats', { keyPath: 'id' });
-          store.createIndex('id', 'id', { unique: true });
-          store.createIndex('urlId', 'urlId', { unique: true });
-          logger.debug('Created chats store');
-        }
+      // Test if we can actually open IndexedDB
+      const testRequest = window.indexedDB.open('test');
+      testRequest.onerror = () => {
+        logger.error('IndexedDB test failed');
+        dbInitAttempted = true;
+        dbInitializing = false;
+        resolve(undefined);
       };
 
-      request.onsuccess = (event: Event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        logger.debug('Successfully opened database');
-        
-        // Test if we can actually use the database
-        try {
-          const transaction = db.transaction(['chats'], 'readonly');
-          transaction.oncomplete = () => {
-            logger.debug('Database test successful');
-            dbInitAttempted = true;
-            dbInitializing = false;
-            resolve(db);
-          };
-          transaction.onerror = () => {
-            logger.error('Database test failed');
+      testRequest.onsuccess = () => {
+        // Close and delete test database
+        const db = testRequest.result;
+        db.close();
+        window.indexedDB.deleteDatabase('test');
+
+        // Now open the actual database
+        const request = window.indexedDB.open('boltHistory', 1);
+
+        request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          logger.debug('Upgrading database');
+
+          if (!db.objectStoreNames.contains('chats')) {
+            const store = db.createObjectStore('chats', { keyPath: 'id' });
+            store.createIndex('id', 'id', { unique: true });
+            store.createIndex('urlId', 'urlId', { unique: true });
+            logger.debug('Created chats store');
+          }
+        };
+
+        request.onsuccess = (event: Event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          logger.debug('Successfully opened database');
+          
+          // Test if we can actually use the database
+          try {
+            const transaction = db.transaction(['chats'], 'readonly');
+            transaction.oncomplete = () => {
+              logger.debug('Database test successful');
+              dbInitAttempted = true;
+              dbInitializing = false;
+              resolve(db);
+            };
+            transaction.onerror = () => {
+              logger.error('Database test failed');
+              dbInitAttempted = true;
+              dbInitializing = false;
+              resolve(undefined);
+            };
+          } catch (error) {
+            logger.error('Error testing database:', error);
             dbInitAttempted = true;
             dbInitializing = false;
             resolve(undefined);
-          };
-        } catch (error) {
-          logger.error('Error testing database:', error);
+          }
+        };
+
+        request.onerror = (event: Event) => {
+          const error = (event.target as IDBOpenDBRequest).error;
+          logger.error('Failed to open database:', error?.message || 'Unknown error');
           dbInitAttempted = true;
           dbInitializing = false;
           resolve(undefined);
-        }
-      };
+        };
 
-      request.onerror = (event: Event) => {
-        const error = (event.target as IDBOpenDBRequest).error;
-        logger.error('Failed to open database:', error?.message || 'Unknown error');
-        dbInitAttempted = true;
-        dbInitializing = false;
-        resolve(undefined);
+        request.onblocked = () => {
+          logger.error('Database blocked');
+          dbInitAttempted = true;
+          dbInitializing = false;
+          resolve(undefined);
+        };
       };
-
-      request.onblocked = () => {
-        logger.error('Database blocked');
-        dbInitAttempted = true;
-        dbInitializing = false;
-        resolve(undefined);
-      };
-
     } catch (error) {
       logger.error('Error initializing database:', error);
       dbInitAttempted = true;
