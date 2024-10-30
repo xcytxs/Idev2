@@ -31,9 +31,23 @@ async function initializeDb() {
 
   dbInitializing = true;
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      logger.debug('Not in browser environment');
+      return undefined;
+    }
+
+    // Check if IndexedDB is available
+    if (!window.indexedDB) {
+      logger.debug('IndexedDB not available');
+      return undefined;
+    }
+
     db = await openDatabase();
-    dbInitialized = true;
-    logger.debug('Database initialized successfully');
+    if (db) {
+      dbInitialized = true;
+      logger.debug('Database initialized successfully');
+    }
   } catch (error) {
     logger.error('Failed to initialize database:', error);
   } finally {
