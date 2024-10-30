@@ -50,6 +50,13 @@ const inlineThemeCode = stripIndents`
 
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }
+
+  // Initialize IndexedDB early
+  if (typeof window !== 'undefined' && window.indexedDB) {
+    const request = window.indexedDB.open('boltHistory', 1);
+    request.onerror = () => console.error('Failed to initialize IndexedDB');
+    request.onsuccess = () => console.debug('IndexedDB initialized');
+  }
 `;
 
 export const Head = createHead(() => (
