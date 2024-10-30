@@ -14,9 +14,8 @@ export interface ChatHistoryItem {
   timestamp: string;
 }
 
-const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
-
-export const db = persistenceEnabled ? await openDatabase() : undefined;
+// Initialize database lazily when component mounts
+let db: IDBDatabase | undefined;
 
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
@@ -29,36 +28,40 @@ export function useChatHistory() {
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
+  // Initialize database when component mounts
   useEffect(() => {
-    if (!db) {
-      setReady(true);
-
-      if (persistenceEnabled) {
-        toast.error(`Chat persistence is unavailable`);
+    const initDb = async () => {
+      if (!db) {
+        db = await openDatabase();
+      }
+      
+      if (!db) {
+        setReady(true);
+        // Only show error if database failed to open
+        toast.error('Failed to initialize chat persistence');
+        return;
       }
 
-      return;
-    }
-
-    if (mixedId) {
-      getMessages(db, mixedId)
-        .then((storedMessages) => {
+      if (mixedId) {
+        try {
+          const storedMessages = await getMessages(db, mixedId);
           if (storedMessages && storedMessages.messages.length > 0) {
             setInitialMessages(storedMessages.messages);
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);
           } else {
-            navigate(`/`, { replace: true });
+            navigate('/', { replace: true });
           }
+        } catch (error) {
+          toast.error((error as Error).message);
+        }
+      }
+      setReady(true);
+    };
 
-          setReady(true);
-        })
-        .catch((error) => {
-          toast.error(error.message);
-        });
-    }
-  }, []);
+    initDb();
+  }, [mixedId, navigate]);
 
   return {
     ready: !mixedId || ready,
@@ -71,10 +74,9 @@ export function useChatHistory() {
       const { firstArtifact } = workbenchStore;
 
       if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
-
-        navigateChat(urlId);
-        setUrlId(urlId);
+        const newUrlId = await getUrlId(db, firstArtifact.id);
+        navigateChat(newUrlId);
+        setUrlId(newUrlId);
       }
 
       if (!description.get() && firstArtifact?.title) {
@@ -83,7 +85,6 @@ export function useChatHistory() {
 
       if (initialMessages.length === 0 && !chatId.get()) {
         const nextId = await getNextId(db);
-
         chatId.set(nextId);
 
         if (!urlId) {
@@ -91,19 +92,17 @@ export function useChatHistory() {
         }
       }
 
-      await setMessages(db, chatId.get() as string, messages, urlId, description.get());
+      try {
+        await setMessages(db, chatId.get() as string, messages, urlId, description.get());
+      } catch (error) {
+        toast.error('Failed to save chat history');
+      }
     },
   };
 }
 
 function navigateChat(nextId: string) {
-  /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
-   *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
-   */
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;
-
   window.history.replaceState({}, '', url);
 }
