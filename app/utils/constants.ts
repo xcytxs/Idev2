@@ -111,7 +111,7 @@ async function getLMStudioModels(): Promise<ModelInfo[]> {
   const apiKey = import.meta.env.LM_STUDIO_API_KEY ?? 'lm-studio';
   const provider = 'LMStudio';
 
-  return getOAILikeModels(baseURL, apiKey, provider);
+  return getOAILikeModels(`${baseURL}/v1`, apiKey, provider);
 }
 
 async function initializeModelList(): Promise<void> {

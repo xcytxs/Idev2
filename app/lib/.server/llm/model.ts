@@ -96,7 +96,7 @@ export function getModel(provider: string, model: string, env: Env) {
     case 'OpenAILike':
       return getOpenAILikeModel(baseURL, apiKey, model);
     case 'LMStudio':
-      return getOpenAILikeModel(baseURL, apiKey, model);
+      return getOpenAILikeModel(`${baseURL}/v1`, apiKey, model);
     case 'Deepseek':
       return getDeepseekModel(apiKey, model);
     case 'Mistral':
