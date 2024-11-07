@@ -19,10 +19,12 @@ services:
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}
+      - LM_STUDIO_API_BASE_URL=${LM_STUDIO_API_BASE_URL}
+      - LM_STUDIO_API_KEY= ${LM_STUDIO_API_KEY}
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
     extra_hosts:
-      - "host.docker.internal:host-gateway"      
+      - "host.docker.internal:host-gateway"
     command: pnpm run dockerstart
     profiles:
       - production  # This service only runs in the production profile
@@ -37,7 +39,7 @@ services:
       - VITE_HMR_HOST=localhost
       - VITE_HMR_PORT=5173
       - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true  
+      - WATCHPACK_POLLING=true
       - PORT=5173
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -45,10 +47,12 @@ services:
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}
+      - LM_STUDIO_API_BASE_URL=${LM_STUDIO_API_BASE_URL}
+      - LM_STUDIO_API_KEY= ${LM_STUDIO_API_KEY}
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
     extra_hosts:
-      - "host.docker.internal:host-gateway"      
+      - "host.docker.internal:host-gateway"
     volumes:
       - type: bind
         source: .

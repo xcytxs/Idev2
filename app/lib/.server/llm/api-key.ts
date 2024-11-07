@@ -20,13 +20,15 @@ export function getAPIKey(cloudflareEnv: Env, provider: string) {
     case 'OpenRouter':
       return env.OPEN_ROUTER_API_KEY || cloudflareEnv.OPEN_ROUTER_API_KEY;
     case 'Deepseek':
-      return env.DEEPSEEK_API_KEY || cloudflareEnv.DEEPSEEK_API_KEY
+      return env.DEEPSEEK_API_KEY || cloudflareEnv.DEEPSEEK_API_KEY;
     case 'Mistral':
-      return env.MISTRAL_API_KEY || cloudflareEnv.MISTRAL_API_KEY;        
-    case "OpenAILike":
+      return env.MISTRAL_API_KEY || cloudflareEnv.MISTRAL_API_KEY;
+    case 'OpenAILike':
       return env.OPENAI_LIKE_API_KEY || cloudflareEnv.OPENAI_LIKE_API_KEY;
+    case 'LMStudio':
+      return env.LM_STUDIO_API_KEY || cloudflareEnv.LM_STUDIO_API_KEY;
     default:
-      return "";
+      return '';
   }
 }
 
@@ -34,13 +36,15 @@ export function getBaseURL(cloudflareEnv: Env, provider: string) {
   switch (provider) {
     case 'OpenAILike':
       return env.OPENAI_LIKE_API_BASE_URL || cloudflareEnv.OPENAI_LIKE_API_BASE_URL;
+    case 'LMStudio':
+      return env.LM_STUDIO_API_BASE_URL || cloudflareEnv.LM_STUDIO_API_BASE_URL || 'http://localhost:1234';
     case 'Ollama':
-        let baseUrl = env.OLLAMA_API_BASE_URL || cloudflareEnv.OLLAMA_API_BASE_URL || "http://localhost:11434";
-        if (env.RUNNING_IN_DOCKER === 'true') {
-          baseUrl = baseUrl.replace("localhost", "host.docker.internal");
-        }
-        return baseUrl;
+      let baseUrl = env.OLLAMA_API_BASE_URL || cloudflareEnv.OLLAMA_API_BASE_URL || 'http://localhost:11434';
+      if (env.RUNNING_IN_DOCKER === 'true') {
+        baseUrl = baseUrl.replace('localhost', 'host.docker.internal');
+      }
+      return baseUrl;
     default:
-      return "";
+      return '';
   }
 }

@@ -23,7 +23,7 @@ This fork of Bolt.new allows you to choose the LLM that you use for each prompt!
 - ⬜ **HIGH PRIORITY** Load local projects into the app
 - ⬜ **HIGH PRIORITY** - Attach images to prompts
 - ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
-- ⬜ LM Studio Integration
+- ✅ LM Studio Integration
 - ⬜ Together Integration
 - ⬜ Azure Open AI API Integration
 - ⬜ HuggingFace Integration
@@ -67,9 +67,9 @@ Many of you are new users to installing software from Github. If you have any in
 
 1. Install Git from https://git-scm.com/downloads
 
-2. Install Node.js from https://nodejs.org/en/download/ 
+2. Install Node.js from https://nodejs.org/en/download/
 
-Pay attention to the installer notes after completion. 
+Pay attention to the installer notes after completion.
 
 On all operating systems, the path to Node.js should automatically be added to your system path. But you can check your path if you want to be sure. On Windows, you can search for "edit the system environment variables" in your system, select "Environment Variables..." once you are in the system properties, and then check for a path to Node in your "Path" system variable. On a Mac or Linux machine, it will tell you to check if /usr/local/bin is in your $PATH. To determine if usr/local/bin is included in $PATH open your Terminal and run:
 
@@ -199,7 +199,7 @@ FROM [Ollama model ID such as qwen2.5-coder:7b]
 PARAMETER num_ctx 32768
 ```
 
-- Run the command: 
+- Run the command:
 
 ```
 ollama create -f Modelfile [your new model ID, can be whatever you want (example: qwen2.5-coder-extra-ctx:7b)]
@@ -210,7 +210,7 @@ You'll see this new model in the list of Ollama models along with all the others
 
 ## Adding New LLMs:
 
-To make new LLMs available to use in this version of Bolt.new, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider. 
+To make new LLMs available to use in this version of Bolt.new, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider.
 
 By default, Anthropic, OpenAI, Groq, and Ollama are implemented as providers, but the YouTube video for this repo covers how to extend this to work with more providers if you wish!
 

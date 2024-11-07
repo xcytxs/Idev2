@@ -19,7 +19,7 @@ const staticModels: ModelInfo[] = [
   { name: 'qwen/qwen-110b-chat', label: 'OpenRouter Qwen 110b Chat (OpenRouter)', provider: 'OpenRouter' },
   { name: 'cohere/command', label: 'Cohere Command (OpenRouter)', provider: 'OpenRouter' },
   { name: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash', provider: 'Google' },
-  { name: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro', provider: 'Google'},
+  { name: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro', provider: 'Google' },
   { name: 'llama-3.1-70b-versatile', label: 'Llama 3.1 70b (Groq)', provider: 'Groq' },
   { name: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b (Groq)', provider: 'Groq' },
   { name: 'llama-3.2-11b-vision-preview', label: 'Llama 3.2 11b (Groq)', provider: 'Groq' },
@@ -32,8 +32,8 @@ const staticModels: ModelInfo[] = [
   { name: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'OpenAI' },
   { name: 'gpt-4', label: 'GPT-4', provider: 'OpenAI' },
   { name: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', provider: 'OpenAI' },
-  { name: 'deepseek-coder', label: 'Deepseek-Coder', provider: 'Deepseek'},
-  { name: 'deepseek-chat', label: 'Deepseek-Chat', provider: 'Deepseek'},
+  { name: 'deepseek-coder', label: 'Deepseek-Coder', provider: 'Deepseek' },
+  { name: 'deepseek-chat', label: 'Deepseek-Chat', provider: 'Deepseek' },
   { name: 'open-mistral-7b', label: 'Mistral 7B', provider: 'Mistral' },
   { name: 'open-mixtral-8x7b', label: 'Mistral 8x7B', provider: 'Mistral' },
   { name: 'open-mixtral-8x22b', label: 'Mistral 8x22B', provider: 'Mistral' },
@@ -54,20 +54,18 @@ const getOllamaBaseUrl = () => {
     // Frontend always uses localhost
     return defaultBaseUrl;
   }
-  
+
   // Backend: Check if we're running in Docker
   const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
-  
-  return isDocker 
-    ? defaultBaseUrl.replace("localhost", "host.docker.internal")
-    : defaultBaseUrl;
+
+  return isDocker ? defaultBaseUrl.replace('localhost', 'host.docker.internal') : defaultBaseUrl;
 };
 
 async function getOllamaModels(): Promise<ModelInfo[]> {
   try {
     const base_url = getOllamaBaseUrl();
     const response = await fetch(`${base_url}/api/tags`);
-    const data = await response.json() as OllamaApiResponse;
+    const data = (await response.json()) as OllamaApiResponse;
 
     return data.models.map((model: OllamaModel) => ({
       name: model.name,
@@ -79,33 +77,49 @@ async function getOllamaModels(): Promise<ModelInfo[]> {
   }
 }
 
-async function getOpenAILikeModels(): Promise<ModelInfo[]> {
- try {
-   const base_url =import.meta.env.OPENAI_LIKE_API_BASE_URL || "";
-   if (!base_url) {
+async function getOAILikeModels(baseURL: string, apiKey: string, provider: string): Promise<ModelInfo[]> {
+  try {
+    if (!baseURL) {
       return [];
-   }
-   const api_key = import.meta.env.OPENAI_LIKE_API_KEY ?? "";
-   const response = await fetch(`${base_url}/models`, {
-     headers: {
-       Authorization: `Bearer ${api_key}`,
-     }
-   });
-    const res = await response.json() as any;
+    }
+    const response = await fetch(`${baseURL}/models`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    const res = (await response.json()) as any;
     return res.data.map((model: any) => ({
       name: model.id,
       label: model.id,
-      provider: 'OpenAILike',
+      provider,
     }));
- }catch (e) {
-   return []
- }
-
+  } catch (e) {
+    return [];
+  }
 }
+
+async function getOpenAILikeModels(): Promise<ModelInfo[]> {
+  const baseURL = import.meta.env.OPENAI_LIKE_API_BASE_URL || '';
+  const apiKey = import.meta.env.OPENAI_LIKE_API_KEY ?? '';
+  const provider = 'OpenAILike';
+
+  return getOAILikeModels(baseURL, apiKey, provider);
+}
+
+async function getLMStudioModels(): Promise<ModelInfo[]> {
+  const baseURL = import.meta.env.LM_STUDIO_API_BASE_URL || 'http://localhost:1234';
+  const apiKey = import.meta.env.LM_STUDIO_API_KEY ?? 'lm-studio';
+  const provider = 'LMStudio';
+
+  return getOAILikeModels(baseURL, apiKey, provider);
+}
+
 async function initializeModelList(): Promise<void> {
   const ollamaModels = await getOllamaModels();
   const openAiLikeModels = await getOpenAILikeModels();
-  MODEL_LIST = [...ollamaModels,...openAiLikeModels, ...staticModels];
+  const lmStudioModels = await getLMStudioModels();
+  MODEL_LIST = [...ollamaModels, ...openAiLikeModels, ...lmStudioModels, ...staticModels];
 }
+
 initializeModelList().then();
 export { getOllamaModels, getOpenAILikeModels, initializeModelList };
