@@ -27,6 +27,8 @@ export function getAPIKey(cloudflareEnv: Env, provider: string) {
       return env.OPENAI_LIKE_API_KEY || cloudflareEnv.OPENAI_LIKE_API_KEY;
     case 'LMStudio':
       return env.LM_STUDIO_API_KEY || cloudflareEnv.LM_STUDIO_API_KEY;
+    case "xAI":
+      return env.XAI_API_KEY || cloudflareEnv.XAI_API_KEY;
     default:
       return '';
   }
