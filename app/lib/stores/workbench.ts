@@ -336,52 +336,45 @@ export class WorkbenchStore {
   }
 
   async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {
-    
     try {
-      // Get the GitHub auth token from environment variables
       const githubToken = ghToken;
-      
       const owner = githubUsername;
       
       if (!githubToken) {
         throw new Error('GitHub token is not set in environment variables');
       }
-  
-      // Initialize Octokit with the auth token
+
       const octokit = new Octokit({ auth: githubToken });
-  
-      // Check if the repository already exists before creating it
-      let repo
+
+      let repoData;
       try {
-        repo = await octokit.repos.get({ owner: owner, repo: repoName });
+        const { data: existingRepo } = await octokit.repos.get({ owner, repo: repoName });
+        repoData = existingRepo;
       } catch (error) {
         if (error instanceof Error && 'status' in error && error.status === 404) {
-          // Repository doesn't exist, so create a new one
           const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
             private: false,
             auto_init: true,
           });
-          repo = newRepo;
+          repoData = newRepo;
         } else {
           console.log('cannot create repo!');
-          throw error; // Some other error occurred
+          throw error;
         }
       }
-  
-      // Get all files
+
       const files = this.files.get();
       if (!files || Object.keys(files).length === 0) {
         throw new Error('No files found to push');
       }
-  
-      // Create blobs for each file
+
       const blobs = await Promise.all(
         Object.entries(files).map(async ([filePath, dirent]) => {
           if (dirent?.type === 'file' && dirent.content) {
             const { data: blob } = await octokit.git.createBlob({
-              owner: repo.owner.login,
-              repo: repo.name,
+              owner,
+              repo: repoName,
               content: Buffer.from(dirent.content).toString('base64'),
               encoding: 'base64',
             });
@@ -389,25 +382,23 @@ export class WorkbenchStore {
           }
         })
       );
-  
-      const validBlobs = blobs.filter(Boolean); // Filter out any undefined blobs
-  
+
+      const validBlobs = blobs.filter(Boolean);
+
       if (validBlobs.length === 0) {
         throw new Error('No valid files to push');
       }
-  
-      // Get the latest commit SHA (assuming main branch, update dynamically if needed)
+
       const { data: ref } = await octokit.git.getRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
+        owner,
+        repo: repoName,
+        ref: `heads/${repoData.default_branch || 'main'}`,
       });
       const latestCommitSha = ref.object.sha;
-  
-      // Create a new tree
+
       const { data: newTree } = await octokit.git.createTree({
-        owner: repo.owner.login,
-        repo: repo.name,
+        owner,
+        repo: repoName,
         base_tree: latestCommitSha,
         tree: validBlobs.map((blob) => ({
           path: blob!.path,
@@ -416,27 +407,45 @@ export class WorkbenchStore {
           sha: blob!.sha,
         })),
       });
-  
-      // Create a new commit
+
       const { data: newCommit } = await octokit.git.createCommit({
-        owner: repo.owner.login,
-        repo: repo.name,
+        owner,
+        repo: repoName,
         message: 'Initial commit from your app',
         tree: newTree.sha,
         parents: [latestCommitSha],
       });
-  
-      // Update the reference
+
       await octokit.git.updateRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
+        owner,
+        repo: repoName,
+        ref: `heads/${repoData.default_branch || 'main'}`,
         sha: newCommit.sha,
       });
-  
-      alert(`Repository created and code pushed: ${repo.html_url}`);
+
+      alert(`Repository created and code pushed: ${repoData.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async syncFilesLegacy(files: File[]) {
+    try {
+      const fileContents = await Promise.all(
+        files.map(async (file) => {
+          const content = await file.text();
+          const path = file.webkitRelativePath.split('/').slice(1).join('/');
+          return {
+            path,
+            content
+          };
+        })
+      );
+      
+      return fileContents;
+    } catch (error) {
+      console.error('Error processing files:', error);
+      throw error;
     }
   }
 }
