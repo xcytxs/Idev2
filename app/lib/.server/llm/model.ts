@@ -56,7 +56,10 @@ export function getGroqModel(apiKey: string, model: string) {
 }
 
 export function getOllamaModel(baseURL: string, model: string) {
-  let Ollama = ollama(model);
+  let Ollama = ollama(model, {
+    numCtx: 32768,
+  });
+
   Ollama.config.baseURL = `${baseURL}/api`;
   return Ollama;
 }
@@ -86,9 +89,8 @@ export function getXAIModel(apiKey: string, model: string) {
 
   return openai(model);
 }
-
-export function getModel(provider: string, model: string, env: Env) {
-  const apiKey = getAPIKey(env, provider);
+export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
+  const apiKey = getAPIKey(env, provider, apiKeys);
   const baseURL = getBaseURL(env, provider);
 
   switch (provider) {
