@@ -17,6 +17,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
+import { Octokit } from "@octokit/rest";
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -62,6 +63,11 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   const [githubRepoName, setGithubRepoName] = useState('bolt-generated-project');
   const [githubUsername, setGithubUsername] = useState('');
   const [githubToken, setGithubToken] = useState('');
+  const [isPrivateRepo, setIsPrivateRepo] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState('main');
+  const [branches, setBranches] = useState<string[]>([]);
+  const [isNewBranch, setIsNewBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
 
   const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -122,23 +128,95 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     }
   }, []);
 
+  const isValidBranchName = (branchName: string) => {
+    // Git branch names must not contain these characters: ~ ^ : ? * [ \ and must not end with a dot.
+    const invalidCharacters = /[~^:?*[\]\\]/;
+    return branchName.length > 0 && !invalidCharacters.test(branchName) && !branchName.endsWith('.');
+  };
+  
   const handleGitHubPush = useCallback(async () => {
     if (!githubRepoName || !githubUsername || !githubToken) {
       toast.error('Please fill in all GitHub details');
       return;
     }
-
+  
+    if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+      toast.error('Invalid token format. Please use a GitHub Personal Access Token');
+      return;
+    }
+  
+    if (isNewBranch) {
+      if (!newBranchName) {
+        toast.error('Please enter a name for the new branch');
+        return;
+      }
+      if (!isValidBranchName(newBranchName)) {
+        toast.error('Invalid branch name. Please ensure it does not contain invalid characters or end with a dot.');
+        return;
+      }
+    }
+  
     setIsGitHubPushing(true);
     try {
-      await workbenchStore.pushToGitHub(githubRepoName, githubUsername, githubToken);
+      const repoUrl = await workbenchStore.pushToGitHub(
+        githubRepoName.trim(),
+        githubUsername.trim(),
+        githubToken.trim(),
+        isPrivateRepo,
+        isNewBranch ? newBranchName.trim() : undefined,
+        isNewBranch
+      );
+  
+      toast.success(
+        <div>
+          Successfully pushed to GitHub!{' '}
+          <a href={repoUrl} target="_blank" rel="noopener noreferrer" className="underline">
+            View Repository
+          </a>
+        </div>
+      );
       setShowGitHubDialog(false);
-      toast.success('Successfully pushed to GitHub!');
     } catch (error) {
-      toast.error('Failed to push to GitHub');
+      console.error('GitHub push error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to push to GitHub';
+  
+      // Add specific error handling for common cases
+      if (errorMessage.includes('Repository does not exist')) {
+        toast.error('Cannot create a new branch in a non-existent repository. Please create the repository first.');
+      } else if (errorMessage.includes('rate limit')) {
+        toast.error('GitHub API rate limit exceeded. Please try again later.');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsGitHubPushing(false);
     }
-  }, [githubRepoName, githubUsername, githubToken]);
+  }, [githubRepoName, githubUsername, githubToken, isPrivateRepo, isNewBranch, newBranchName]);
+
+  const handleCancelPush = useCallback(() => {
+    if (isGitHubPushing) {
+      // Cancel the ongoing push operation
+      setIsGitHubPushing(false);
+      toast.info('GitHub push operation cancelled');
+    }
+    setShowGitHubDialog(false);
+  }, [isGitHubPushing]);
+
+  const fetchBranches = useCallback(async () => {
+    if (!githubUsername || !githubToken || !githubRepoName) return;
+    
+    try {
+      const octokit = new Octokit({ auth: githubToken });
+      const { data } = await octokit.rest.repos.listBranches({
+        owner: githubUsername,
+        repo: githubRepoName
+      });
+      setBranches(data.map(branch => branch.name));
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      setBranches([]);
+    }
+  }, [githubUsername, githubToken, githubRepoName]);
 
   return (
     chatStarted && (
@@ -156,11 +234,13 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                 Push to GitHub
               </div>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription asChild>
               <div className="flex flex-col gap-4">
-                <p className="text-sm text-bolt-elements-textSecondary">
+                <div className="text-sm text-bolt-elements-textSecondary">
                   Push your project to a new or existing GitHub repository. You'll need a GitHub account and a personal access token with repo permissions.
-                </p>
+                </div>
+                
+                {/* Repository Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Repository Name</label>
                   <input
@@ -171,6 +251,8 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                     placeholder="bolt-generated-project"
                   />
                 </div>
+
+                {/* GitHub Username */}
                 <div>
                   <label className="block text-sm font-medium mb-1">GitHub Username</label>
                   <input
@@ -181,6 +263,68 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                     placeholder="username"
                   />
                 </div>
+
+                {/* Repository Visibility */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Repository Visibility</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={!isPrivateRepo}
+                        onChange={() => setIsPrivateRepo(false)}
+                        className="mr-2"
+                      />
+                      Public
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={isPrivateRepo}
+                        onChange={() => setIsPrivateRepo(true)}
+                        className="mr-2"
+                      />
+                      Private
+                    </label>
+                  </div>
+                </div>
+
+                {/* Branch Options */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Branch Options</label>
+                  <div className="flex gap-4 mb-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={!isNewBranch}
+                        onChange={() => setIsNewBranch(false)}
+                        className="mr-2"
+                      />
+                      Default Branch (main)
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={isNewBranch}
+                        onChange={() => setIsNewBranch(true)}
+                        className="mr-2"
+                      />
+                      New Branch
+                    </label>
+                  </div>
+                  
+                  {isNewBranch && (
+                    <input
+                      type="text"
+                      value={newBranchName}
+                      onChange={(e) => setNewBranchName(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md bg-bolt-elements-background-depth-1 focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
+                      placeholder="Enter new branch name"
+                    />
+                  )}
+                </div>
+
+                {/* Personal Access Token */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Personal Access Token</label>
                   <input
@@ -194,13 +338,13 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                     href="https://github.com/settings/tokens/new"
                     target="_blank"
                     rel="noopener noreferrer" 
-                    className="text-xs text-bolt-elements-button-primary-background hover:underline mt-1 inline-block"
+                    className="text-xs text-bolt-elements-textSecondary hover:underline mt-1 inline-block"
                   >
                     Generate a new token
                   </a>
                 </div>
                 <div className="flex justify-end gap-2 mt-2">
-                  <DialogButton type="secondary" onClick={() => setShowGitHubDialog(false)}>
+                  <DialogButton type="secondary" onClick={handleCancelPush}>
                     Cancel
                   </DialogButton>
                   <DialogButton type="primary" onClick={handleGitHubPush}>

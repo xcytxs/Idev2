@@ -335,108 +335,194 @@ export class WorkbenchStore {
     return syncedFiles;
   }
 
-  async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {
-    
+  async pushToGitHub(
+    repoName: string, 
+    githubUsername: string, 
+    ghToken: string, 
+    isPrivate: boolean,
+    branchName?: string,
+    isNewBranch?: boolean
+  ) {
     try {
-      // Get the GitHub auth token from environment variables
-      const githubToken = ghToken;
-      
-      const owner = githubUsername;
-      
-      if (!githubToken) {
-        throw new Error('GitHub token is not set in environment variables');
-      }
+      // Clean and validate inputs
+      const cleanUsername = githubUsername.trim().replace(/[@\s]/g, '');
+      const cleanRepoName = repoName.trim().replace(/[^a-zA-Z0-9-_]/g, '-');
+      const targetBranch = (branchName || 'main').trim();
   
-      // Initialize Octokit with the auth token
-      const octokit = new Octokit({ auth: githubToken });
+      // Initialize Octokit client with auth token
+      const octokit = new Octokit({
+        auth: ghToken,
+        baseUrl: 'https://api.github.com'
+      });
   
-      // Check if the repository already exists before creating it
-      let repo
+      // Get or create repository
+      let repoData;
       try {
-        repo = await octokit.repos.get({ owner: owner, repo: repoName });
-      } catch (error) {
-        if (error instanceof Error && 'status' in error && error.status === 404) {
-          // Repository doesn't exist, so create a new one
-          const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
-            name: repoName,
-            private: false,
-            auto_init: true,
+        // Try to get existing repo first
+        const { data } = await octokit.rest.repos.get({
+          owner: cleanUsername,
+          repo: cleanRepoName
+        });
+        repoData = data;
+  
+        // Update repository visibility if it exists
+        await octokit.rest.repos.update({
+          owner: cleanUsername,
+          repo: cleanRepoName,
+          private: isPrivate,
+          name: cleanRepoName
+        });
+  
+      } catch (error: any) {
+        if (error?.response?.status === 404) {
+          const { data } = await octokit.rest.repos.createForAuthenticatedUser({
+            name: cleanRepoName,
+            private: isPrivate,
+            auto_init: true
           });
-          repo = newRepo;
+          repoData = data;
+          await new Promise(resolve => setTimeout(resolve, 5000));
         } else {
-          console.log('cannot create repo!');
-          throw error; // Some other error occurred
+          throw error;
         }
       }
   
-      // Get all files
+      // Get base commit SHA from default branch
+      let baseCommitSha;
+      try {
+        const { data: ref } = await octokit.rest.git.getRef({
+          owner: cleanUsername,
+          repo: cleanRepoName,
+          ref: `heads/${repoData.default_branch}`
+        });
+        baseCommitSha = ref.object.sha;
+      } catch (error) {
+        console.error('Error getting default branch:', error);
+        throw new Error('Failed to get default branch. Repository may not be properly initialized.');
+      }
+  
+      // Create blobs for files in batches to avoid rate limits
       const files = this.files.get();
       if (!files || Object.keys(files).length === 0) {
         throw new Error('No files found to push');
       }
   
-      // Create blobs for each file
-      const blobs = await Promise.all(
-        Object.entries(files).map(async ([filePath, dirent]) => {
+      const blobs = [];
+      const BATCH_SIZE = 3;
+      const fileEntries = Object.entries(files);
+      for (let i = 0; i < fileEntries.length; i += BATCH_SIZE) {
+        const batch = fileEntries.slice(i, i + BATCH_SIZE);
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+  
+        const batchResults = await Promise.all(batch.map(async ([filePath, dirent]) => {
           if (dirent?.type === 'file' && dirent.content) {
-            const { data: blob } = await octokit.git.createBlob({
-              owner: repo.owner.login,
-              repo: repo.name,
-              content: Buffer.from(dirent.content).toString('base64'),
-              encoding: 'base64',
-            });
-            return { path: filePath.replace(/^\/home\/project\//, ''), sha: blob.sha };
+            try {
+              const { data } = await octokit.rest.git.createBlob({
+                owner: cleanUsername,
+                repo: cleanRepoName,
+                content: Buffer.from(dirent.content).toString('base64'),
+                encoding: 'base64'
+              });
+              return {
+                path: filePath.replace(/^\/home\/project\//, ''),
+                mode: '100644' as const,
+                type: 'blob' as const,
+                sha: data.sha
+              };
+            } catch (error) {
+              console.error('Error creating blob:', error);
+              return null;
+            }
           }
-        })
-      );
+          return null;
+        }));
   
-      const validBlobs = blobs.filter(Boolean); // Filter out any undefined blobs
-  
-      if (validBlobs.length === 0) {
-        throw new Error('No valid files to push');
+        blobs.push(...batchResults.filter((blob): blob is NonNullable<typeof blob> => blob !== null));
       }
   
-      // Get the latest commit SHA (assuming main branch, update dynamically if needed)
-      const { data: ref } = await octokit.git.getRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
-      });
-      const latestCommitSha = ref.object.sha;
-  
-      // Create a new tree
-      const { data: newTree } = await octokit.git.createTree({
-        owner: repo.owner.login,
-        repo: repo.name,
-        base_tree: latestCommitSha,
-        tree: validBlobs.map((blob) => ({
-          path: blob!.path,
-          mode: '100644',
-          type: 'blob',
-          sha: blob!.sha,
-        })),
+      const { data: tree } = await octokit.rest.git.createTree({
+        owner: cleanUsername,
+        repo: cleanRepoName,
+        base_tree: baseCommitSha,
+        tree: blobs
       });
   
-      // Create a new commit
-      const { data: newCommit } = await octokit.git.createCommit({
-        owner: repo.owner.login,
-        repo: repo.name,
-        message: 'Initial commit from your app',
-        tree: newTree.sha,
-        parents: [latestCommitSha],
+      const { data: newCommit } = await octokit.rest.git.createCommit({
+        owner: cleanUsername,
+        repo: cleanRepoName,
+        message: 'Update from Bolt',
+        tree: tree.sha,
+        parents: [baseCommitSha]
       });
   
-      // Update the reference
-      await octokit.git.updateRef({
-        owner: repo.owner.login,
-        repo: repo.name,
-        ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
-        sha: newCommit.sha,
-      });
+      if (isNewBranch && branchName) {
+        try {
+          await octokit.rest.git.createRef({
+            owner: cleanUsername,
+            repo: cleanRepoName,
+            ref: `refs/heads/${targetBranch}`,
+            sha: newCommit.sha
+          });
+        } catch (error: any) {
+          if (error?.response?.status === 422) {
+            await octokit.rest.git.updateRef({
+              owner: cleanUsername,
+              repo: cleanRepoName,
+              ref: `heads/${targetBranch}`,
+              sha: newCommit.sha,
+              force: true
+            });
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        try {
+          const { data: branchRef } = await octokit.rest.git.getRef({
+            owner: cleanUsername,
+            repo: cleanRepoName,
+            ref: `heads/${targetBranch}`
+          });
   
-      alert(`Repository created and code pushed: ${repo.html_url}`);
+          if (branchRef.object.sha !== baseCommitSha) {
+            throw new Error('Branch has diverged from the base commit. Manual merge or pull request required.');
+          }
+  
+          await octokit.rest.git.updateRef({
+            owner: cleanUsername,
+            repo: cleanRepoName,
+            ref: `heads/${targetBranch}`,
+            sha: newCommit.sha
+          });
+        } catch (error: any) {
+          if (error?.response?.status === 404) {
+            await octokit.rest.git.createRef({
+              owner: cleanUsername,
+              repo: cleanRepoName,
+              ref: `refs/heads/${targetBranch}`,
+              sha: newCommit.sha
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+  
+      return repoData.html_url;
     } catch (error) {
-      console.error('Error pushing to GitHub:', error instanceof Error ? error.message : String(error));
+      console.error('GitHub push error:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('rate limit')) {
+          throw new Error('GitHub API rate limit exceeded. Please try again later.');
+        }
+        if (error.message.includes('Resource protected by organization SAML enforcement')) {
+          throw new Error('This repository is protected by SAML enforcement. Please authorize your token for SSO.');
+        }
+        throw error;
+      }
+      throw new Error('An unexpected error occurred while pushing to GitHub');
     }
   }
 }
