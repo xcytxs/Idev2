@@ -105,12 +105,31 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     setIsSyncing(true);
 
     try {
-      const directoryHandle = await window.showDirectoryPicker();
-      await workbenchStore.syncFiles(directoryHandle);
-      toast.success('Files synced successfully');
+      if ('showDirectoryPicker' in window) {
+        const directoryHandle = await window.showDirectoryPicker();
+        await workbenchStore.syncFiles(directoryHandle);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.webkitdirectory = true;
+        
+        const files = await new Promise<FileList | null>((resolve) => {
+          input.onchange = () => resolve(input.files);
+          input.click();
+        });
+
+        if (files && files.length > 0) {
+          const fileArray = Array.from(files);
+          await workbenchStore.syncFilesLegacy(fileArray);
+        } else {
+          throw new Error('No files selected');
+        }
+      }
+      toast.success('Files synchronized successfully');
     } catch (error) {
       console.error('Error syncing files:', error);
-      toast.error('Failed to sync files');
+      toast.error(error instanceof Error ? error.message : 'Error syncing files');
     } finally {
       setIsSyncing(false);
     }
