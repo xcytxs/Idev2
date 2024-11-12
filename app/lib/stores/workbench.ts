@@ -11,7 +11,9 @@ import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { Octokit } from "@octokit/rest";
+import { Octokit, type RestEndpointMethodTypes } from "@octokit/rest";
+import * as nodePath from 'node:path';
+import type { WebContainerProcess } from '@webcontainer/api';
 
 export interface ArtifactState {
   id: string;
@@ -39,6 +41,7 @@ export class WorkbenchStore {
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
+  #boltTerminal: { terminal: ITerminal; process: WebContainerProcess } | undefined;
 
   constructor() {
     if (import.meta.hot) {
@@ -76,6 +79,9 @@ export class WorkbenchStore {
   get showTerminal() {
     return this.#terminalStore.showTerminal;
   }
+  get boltTerminal() {
+    return this.#terminalStore.boltTerminal;
+  }
 
   toggleTerminal(value?: boolean) {
     this.#terminalStore.toggleTerminal(value);
@@ -83,6 +89,10 @@ export class WorkbenchStore {
 
   attachTerminal(terminal: ITerminal) {
     this.#terminalStore.attachTerminal(terminal);
+  }
+  attachBoltTerminal(terminal: ITerminal) {
+
+    this.#terminalStore.attachBoltTerminal(terminal);
   }
 
   onTerminalResize(cols: number, rows: number) {
@@ -232,7 +242,7 @@ export class WorkbenchStore {
       id,
       title,
       closed: false,
-      runner: new ActionRunner(webcontainer),
+      runner: new ActionRunner(webcontainer, () => this.boltTerminal),
     });
   }
 
@@ -258,7 +268,7 @@ export class WorkbenchStore {
     artifact.runner.addAction(data);
   }
 
-  async runAction(data: ActionCallbackData) {
+  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
     const { messageId } = data;
 
     const artifact = this.#getArtifact(messageId);
@@ -266,8 +276,29 @@ export class WorkbenchStore {
     if (!artifact) {
       unreachable('Artifact not found');
     }
+    if (data.action.type === 'file') {
+      let wc = await webcontainer
+      const fullPath = nodePath.join(wc.workdir, data.action.filePath);
+      if (this.selectedFile.value !== fullPath) {
+        this.setSelectedFile(fullPath);
+      }
+      if (this.currentView.value !== 'code') {
+        this.currentView.set('code');
+      }
+      const doc = this.#editorStore.documents.get()[fullPath];
+      if (!doc) {
+        await artifact.runner.runAction(data, isStreaming);
+      }
 
-    artifact.runner.runAction(data);
+      this.#editorStore.updateFile(fullPath, data.action.content);
+
+      if (!isStreaming) {
+        this.resetCurrentDocument();
+        await artifact.runner.runAction(data);
+      }
+    } else {
+      artifact.runner.runAction(data);
+    }
   }
 
   #getArtifact(id: string) {
