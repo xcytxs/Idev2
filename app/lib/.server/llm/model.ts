@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Preventing TS checks with files presented in the video for a better presentation.
-import { getAPIKey, getBaseURL } from '~/lib/.server/llm/api-key';
+import { getAPIKey, getBaseURL,getAmazonBedrockCredentials } from '~/lib/.server/llm/api-key';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -8,6 +8,8 @@ import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { mistral } from '@ai-sdk/mistral';
 import { createMistral } from '@ai-sdk/mistral';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+
 
 export function getAnthropicModel(apiKey: string, model: string) {
   const anthropic = createAnthropic({
@@ -15,6 +17,17 @@ export function getAnthropicModel(apiKey: string, model: string) {
   });
 
   return anthropic(model);
+}
+
+export function getBedrockModel(region: string, accessKeyId: string, secretAccessKey: string, model: string) {
+  
+  const bedrock = createAmazonBedrock({
+    region,
+    accessKeyId,
+    secretAccessKey,
+  });
+
+  return bedrock(model);
 }
 export function getOpenAILikeModel(baseURL:string,apiKey: string, model: string) {
   const openai = createOpenAI({
@@ -83,6 +96,7 @@ export function getOpenRouterModel(apiKey: string, model: string) {
 export function getModel(provider: string, model: string, env: Env) {
   const apiKey = getAPIKey(env, provider);
   const baseURL = getBaseURL(env, provider);
+  const amazonBedrockCredentials = getAmazonBedrockCredentials(env);
 
   switch (provider) {
     case 'Anthropic':
@@ -94,13 +108,15 @@ export function getModel(provider: string, model: string, env: Env) {
     case 'OpenRouter':
       return getOpenRouterModel(apiKey, model);
     case 'Google':
-      return getGoogleModel(apiKey, model)
+      return getGoogleModel(apiKey, model);
     case 'OpenAILike':
-      return getOpenAILikeModel(baseURL,apiKey, model);
+      return getOpenAILikeModel(baseURL, apiKey, model);
     case 'Deepseek':
       return getDeepseekModel(apiKey, model)
     case 'Mistral':
-      return  getMistralModel(apiKey, model);
+      return getMistralModel(apiKey, model);
+    case 'AmazonBedrock':
+      return getBedrockModel(amazonBedrockCredentials.region, amazonBedrockCredentials.accessKeyId, amazonBedrockCredentials.secretAccessKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }

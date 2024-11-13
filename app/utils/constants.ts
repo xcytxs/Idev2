@@ -4,8 +4,10 @@ export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
-export const DEFAULT_MODEL = 'claude-3-5-sonnet-20240620';
-export const DEFAULT_PROVIDER = 'Anthropic';
+//export const DEFAULT_MODEL = 'claude-3-5-sonnet-20240620';
+//export const DEFAULT_PROVIDER = 'Anthropic';
+export const DEFAULT_MODEL = 'anthropic.claude-3-5-haiku-20241022-v1:0';
+export const DEFAULT_PROVIDER = 'AmazonBedrock';
 
 const staticModels: ModelInfo[] = [
   { name: 'claude-3-5-sonnet-20240620', label: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
@@ -43,6 +45,9 @@ const staticModels: ModelInfo[] = [
   { name: 'mistral-small-latest', label: 'Mistral Small', provider: 'Mistral' },
   { name: 'codestral-latest', label: 'Codestral', provider: 'Mistral' },
   { name: 'mistral-large-latest', label: 'Mistral Large Latest', provider: 'Mistral' },
+  { name: 'anthropic.claude-3-5-sonnet-20241022-v2:0', label: 'Claude 3.5 Sonnet v2', provider: 'AmazonBedrock' },
+  { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', label: 'Claude 3.5 Sonnet v1', provider: 'AmazonBedrock' },
+  { name: 'anthropic.claude-3-5-haiku-20241022-v1:0', label: 'Claude 3.5 Haiku', provider: 'AmazonBedrock' },
 ];
 
 export let MODEL_LIST: ModelInfo[] = [...staticModels];
@@ -52,7 +57,6 @@ async function getOllamaModels(): Promise<ModelInfo[]> {
     const base_url = import.meta.env.OLLAMA_API_BASE_URL || "http://localhost:11434";
     const response = await fetch(`${base_url}/api/tags`);
     const data = await response.json() as OllamaApiResponse;
-
     return data.models.map((model: OllamaModel) => ({
       name: model.name,
       label: `${model.name} (${model.details.parameter_size})`,

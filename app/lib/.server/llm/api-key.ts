@@ -2,6 +2,23 @@
 // Preventing TS checks with files presented in the video for a better presentation.
 import { env } from 'node:process';
 
+
+
+interface AmazonBedrockCredentials {
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+export function getAmazonBedrockCredentials(cloudflareEnv: Env): AmazonBedrockCredentials {
+
+  return {
+    region: env.AMAZON_BEDROCK_REGION || cloudflareEnv.AMAZON_BEDROCK_REGION,
+    accessKeyId: env.AMAZON_BEDROCK_ACCESS_KEY_ID || cloudflareEnv.AMAZON_BEDROCK_ACCESS_KEY_ID,
+    secretAccessKey: env.AMAZON_BEDROCK_SECRET_ACCESS_KEY || cloudflareEnv.AMAZON_BEDROCK_SECRET_ACCESS_KEY,
+  };
+}
+
 export function getAPIKey(cloudflareEnv: Env, provider: string) {
   /**
    * The `cloudflareEnv` is only used when deployed or when previewing locally.

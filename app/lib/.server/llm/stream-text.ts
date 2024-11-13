@@ -52,11 +52,11 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
   });
 
   const provider = MODEL_LIST.find((model) => model.name === currentModel)?.provider || DEFAULT_PROVIDER;
-
+  const maxTokens = provider === 'AmazonBedrock' ? 4096 : MAX_TOKENS;
   return _streamText({
     model: getModel(provider, currentModel, env),
     system: getSystemPrompt(),
-    maxTokens: MAX_TOKENS,
+    maxTokens: maxTokens,
     // headers: {
     //   'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15',
     // },
