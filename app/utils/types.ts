@@ -26,3 +26,10 @@ export interface ModelInfo {
   label: string;
   provider: string;
 }
+
+
+export interface TemplateInfo {
+  name: string;
+  label: string;
+  githubRepo: string;
+}

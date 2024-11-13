@@ -5,13 +5,14 @@ import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+import { z } from 'zod';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, apiKeys } = await request.json<{ 
+  const { messages, apiKeys } = await request.json<{
     messages: Messages,
     apiKeys: Record<string, string>
   }>();
@@ -20,9 +21,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const options: StreamingOptions = {
-      toolChoice: 'none',
       apiKeys,
-      onFinish: async ({ text: content, finishReason }) => {
+      onFinish: async ({ text: content, finishReason, ...props }) => {
+        console.log(finishReason, JSON.stringify(props, null, 2));
+
         if (finishReason !== 'length') {
           return stream.close();
         }
@@ -38,15 +40,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         messages.push({ role: 'assistant', content });
         messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        const result = await streamText(messages, context.cloudflare.env, options);
+        const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
 
-        return stream.switchSource(result.toAIStream());
-      },
+        return stream.switchSource(result.toDataStream());
+      }
     };
 
     const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
-
-    stream.switchSource(result.toAIStream());
+    stream.switchSource(result.toDataStream());
 
     return new Response(stream.readable, {
       status: 200,
@@ -56,7 +57,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error) {
     console.log(error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Response('Invalid or missing API key', {
         status: 401,
