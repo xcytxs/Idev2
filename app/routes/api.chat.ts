@@ -30,7 +30,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const options: StreamingOptions = {
       apiKeys,
       onFinish: async ({ text: content, finishReason, ...props }) => {
-        console.log(finishReason, JSON.stringify(props, null, 2));
 
         if (finishReason !== 'length') {
           return stream.close();
