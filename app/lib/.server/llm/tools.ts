@@ -5,9 +5,10 @@ export default {
         description: `Use this to select one single code template best suited for the user query, 
         Remember: 
         * ASK FOR CONFIRMATION: before opting for a code template, Also mention that you are going to use a template to generate the code.
-        * If its best to start from scratch then select "blank" template.
-        * ONLY SELECT ONE TEMPLATE AT A TIME.
-        * Once template Selection is done you can continue with users initial query. and start working on the codebase`,
+        * START FROM SCRATCH IF User Says 'No'
+        * ONLY SELECT ONE TEMPLATE.
+        * ONLY Call this tool once.
+        `,
         parameters: z.object({
             template: z.enum([
                 'blank',
