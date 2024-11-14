@@ -115,12 +115,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           toolCallId: toolCall.toolCallId,
         });
         logger.info('Tool Call Complete', toolCall.toolName, `${result}`.split('---')[0]);
-        // addToolResult({ toolCallId: toolCall.toolCallId, result: result });
         return result;
       } catch (error) {
         logger.error('Error calling tool:', toolCall.toolName, error);
         toast.error('There was an error processing your request');
-        // addToolResult({ toolCallId: toolCall.toolCallId, result: 'Error calling tool:' + error });
         return 'Error calling tool';
       }
     },

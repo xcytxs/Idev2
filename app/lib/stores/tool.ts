@@ -6,6 +6,7 @@ import { webcontainer } from '../webcontainer';
 import { map, type MapStore } from 'nanostores';
 import type { IToolsConfig } from '~/utils/types';
 import Cookies from 'js-cookie';
+import { matchPatterns } from '~/utils/matchPatterns';
 
 export class ToolStore {
     #webcontainer: Promise<WebContainer>;
@@ -78,7 +79,40 @@ export class ToolStore {
                 await workbenchStore.updateFile(fullPath, file.content)
                 await workbenchStore.saveFile(file.path)
             }
-            let templatePromptFile = files.filter(x => x.path.startsWith(".bolt")).filter(x => x.name == 'prompt')
+
+            let filteredFiles = files;
+
+            // ignoring common unwanted files
+            // exclude    .git
+            filteredFiles = filteredFiles.filter(x => x.path.startsWith(".git") == false)
+            // exclude    lock files
+            let comminLockFiles = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"]
+            filteredFiles = filteredFiles.filter(x => comminLockFiles.includes(x.name) == false)
+            // exclude    .bolt
+            filteredFiles = filteredFiles.filter(x => x.path.startsWith(".bolt") == false)
+
+
+            // check for ignore file in .bolt folder
+            let templateIgnoreFile = files.find(x => x.path.startsWith(".bolt") && x.name == "ignore")
+            if (templateIgnoreFile) {
+                // redacting files specified in ignore file
+                let ignorepatterns = templateIgnoreFile.content.split("\n").map(x => x.trim())
+                filteredFiles = filteredFiles.filter(x => matchPatterns(x.path, ignorepatterns) == false)
+                let redactedFiles = filteredFiles.filter(x => matchPatterns(x.path, ignorepatterns))
+                redactedFiles = redactedFiles.map(x => {
+                    return {
+                        ...x,
+                        content: "redacted"
+                    }
+                })
+                filteredFiles = [
+                    ...filteredFiles,
+                    ...redactedFiles
+                ]
+            }
+
+            let templatePromptFile = files.filter(x => x.path.startsWith(".bolt")).find(x => x.name == 'prompt')
+
             return this.generateFormattedResult(`template imported successfully`, `
                 here is the imported content,
                 these files are loaded into the bolt. to not write them again, if it don't require changes
@@ -87,13 +121,13 @@ export class ToolStore {
 
                 ${templatePromptFile ? `
                 <User Instruction>
-                ${templatePromptFile[0].content}
+                ${templatePromptFile.content}
                 <User Instruction>
                     `: ''
                 }
 
                 <Imported Files>
-                    ${JSON.stringify(files.filter(x => !(x.path.endsWith(".svg") || x.path.endsWith(".md"))), null, 2)}
+                    ${JSON.stringify(filteredFiles, null, 2)}
                 <Imported Files>
             `)
         } catch (error) {
