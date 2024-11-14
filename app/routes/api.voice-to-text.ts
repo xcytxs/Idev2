@@ -44,9 +44,8 @@ export async function action({ request }: { request: Request }) {
     };
     const formDataToSend = new FormData();
     formDataToSend.append('file', audioFile as Blob, 'audio.wav');
-    formDataToSend.append('model', 'whisper-1');
+    formDataToSend.append('model', env.WHISPER_PROVIDER_MODEL || 'whisper-1');
 
-    const env = process.env;
     const baseUrl = env.WHISPER_PROVIDER_API_URL;
     const apiKey = env.WHISPER_PROVIDER_API_KEY;
 
