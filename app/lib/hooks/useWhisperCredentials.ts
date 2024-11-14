@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { createScopedLogger } from '~/utils/logger';
 
 export function useWhisperCredentials() {
   const [hasCredentials, setHasCredentials] = useState(false);
