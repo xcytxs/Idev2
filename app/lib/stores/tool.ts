@@ -78,12 +78,23 @@ export class ToolStore {
                 await workbenchStore.updateFile(fullPath, file.content)
                 await workbenchStore.saveFile(file.path)
             }
+            let templatePromptFile = files.filter(x => x.path.startsWith(".bolt")).filter(x => x.name == 'prompt')
             return this.generateFormattedResult(`template imported successfully`, `
                 here is the imported content,
                 these files are loaded into the bolt. to not write them again, if it don't require changes
-                you only need to write the files that needs changing 
-                
-                ${JSON.stringify(files, null, 2)}
+                you only need to write the files that needs changing,
+                dont forget to install the dependencies before running the project
+
+                ${templatePromptFile ? `
+                <User Instruction>
+                ${templatePromptFile[0].content}
+                <User Instruction>
+                    `: ''
+                }
+
+                <Imported Files>
+                    ${JSON.stringify(files.filter(x => !(x.path.endsWith(".svg") || x.path.endsWith(".md"))), null, 2)}
+                <Imported Files>
             `)
         } catch (error) {
             console.error('error importing template', error);

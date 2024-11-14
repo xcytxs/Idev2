@@ -73,10 +73,8 @@ export function streamText(
     system: getSystemPrompt(),
     maxTokens: MAX_TOKENS,
     messages: convertToCoreMessages(processedMessages),
-    ...options,
-    // toolChoice: messages.length == 1 ? { type: 'tool', toolName: 'selectCodeTemplate' } : 'none',
-    toolChoice: 'auto',
     experimental_toolCallStreaming: true,
-    maxSteps: 3
+    maxSteps: 3,
+    ...options
   });
 }

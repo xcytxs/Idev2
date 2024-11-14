@@ -8,6 +8,7 @@ import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import tools from '~/lib/.server/llm/tools';
 import { z } from 'zod';
 
+
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
@@ -18,9 +19,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     apiKeys: Record<string, string>
     toolEnabled: boolean
   }>();
-
   const stream = new SwitchableStream();
+  let forceDisableToolAfterProjectImport = false
+  if (messages.length > 3) {
+    forceDisableToolAfterProjectImport = true
+  }
 
+  const useTool = toolEnabled && !forceDisableToolAfterProjectImport
   try {
     const options: StreamingOptions = {
       apiKeys,
@@ -46,7 +51,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         return stream.switchSource(result.toDataStream());
       },
-      tools: toolEnabled ? tools : undefined,
+      tools: useTool ? tools : undefined,
+      toolChoice: useTool ? 'auto' : 'none',
     };
 
     const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
@@ -59,8 +65,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
     });
   } catch (error) {
-    console.log(error);
-
     if (error.message?.includes('API key')) {
       throw new Response('Invalid or missing API key', {
         status: 401,

@@ -93,7 +93,7 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
-  toolConfig: IToolsConfig;
+  toolConfig?: IToolsConfig;
   onToolConfigChange?: (val: IToolsConfig) => void;
 }
 

@@ -114,7 +114,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           args: toolCall.args,
           toolCallId: toolCall.toolCallId,
         });
-        logger.info('Tool Call Complete', toolCall.toolName, result);
+        logger.info('Tool Call Complete', toolCall.toolName, `${result}`.split('---')[0]);
         // addToolResult({ toolCallId: toolCall.toolCallId, result: result });
         return result;
       } catch (error) {
@@ -125,10 +125,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
     },
   });
-  useEffect(() => {
-    console.log('Messages Updated', messages);
-  }, [messages]);
-
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
 
