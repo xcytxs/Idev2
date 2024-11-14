@@ -154,25 +154,69 @@ export function Menu() {
                 version: backupData.version,
                 hasHistory: !!backupData.history,
                 historyIsArray: Array.isArray(backupData.history),
-                historyLength: backupData.history?.length
+                historyLength: backupData.history?.length,
+                rawKeys: Object.keys(backupData)
               });
-              
-              if (!backupData.version || !backupData.history || !Array.isArray(backupData.history)) {
-                throw new Error('Invalid backup file format');
-              }
 
               if (!db) {
                 throw new Error('Database not initialized');
               }
 
+              let chatHistory;
+              
+              // Handle different backup formats
+              if (backupData.version && backupData.history) {
+                // Our standard format
+                chatHistory = backupData.history;
+              } else if (backupData.boltHistory) {
+                // Chrome extension IndexedDB backup format
+                chatHistory = Object.values(backupData.boltHistory.chats || {});
+                logger.info('Detected Chrome extension backup format', {
+                  itemCount: chatHistory.length,
+                  sampleItem: chatHistory[0]
+                });
+              } else if (Array.isArray(backupData)) {
+                // Direct array format
+                chatHistory = backupData;
+              } else {
+                // Try to find any object with chat-like properties
+                const possibleChats = Object.values(backupData).find(value => 
+                  Array.isArray(value) || 
+                  (typeof value === 'object' && value !== null && 'messages' in value)
+                );
+                
+                if (possibleChats) {
+                  chatHistory = Array.isArray(possibleChats) ? possibleChats : [possibleChats];
+                  logger.info('Found possible chat data in alternate format', {
+                    itemCount: chatHistory.length,
+                    sampleItem: chatHistory[0]
+                  });
+                } else {
+                  throw new Error('Unrecognized backup file format');
+                }
+              }
+
+              // Validate and normalize chat items
+              const normalizedHistory = chatHistory.map(item => {
+                if (!item.id || !Array.isArray(item.messages)) {
+                  throw new Error('Invalid chat item format');
+                }
+                return {
+                  id: item.id,
+                  messages: item.messages,
+                  urlId: item.urlId || item.id,
+                  description: item.description || `Imported chat ${item.id}`
+                };
+              });
+
               // Store each chat history item
               logger.info('Starting import of chat history items');
-              for (const item of backupData.history) {
+              for (const item of normalizedHistory) {
                 logger.info('Importing chat item:', { id: item.id, description: item.description });
                 await setMessages(db, item.id, item.messages, item.urlId, item.description);
               }
 
-              toast.success('Chat history imported successfully');
+              toast.success(`Successfully imported ${normalizedHistory.length} chats`);
               // Reload the page to show imported chats
               window.location.reload();
             } catch (error) {
