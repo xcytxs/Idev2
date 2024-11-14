@@ -76,8 +76,7 @@ export function streamText(
     ...options,
     // toolChoice: messages.length == 1 ? { type: 'tool', toolName: 'selectCodeTemplate' } : 'none',
     toolChoice: 'auto',
-    tools: tools,
     experimental_toolCallStreaming: true,
-    maxSteps: 2
+    maxSteps: 3
   });
 }

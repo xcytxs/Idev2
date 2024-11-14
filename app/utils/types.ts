@@ -33,3 +33,13 @@ export interface TemplateInfo {
   label: string;
   githubRepo: string;
 }
+
+export interface IToolsConfig {
+  enabled: boolean;
+  //this section will be usefull for future features
+  config: Record<string, {
+    name: string;
+    id: string;
+    enabled: boolean;
+  }>
+}

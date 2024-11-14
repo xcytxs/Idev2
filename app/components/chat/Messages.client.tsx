@@ -1,5 +1,5 @@
 import type { JSONValue, Message, ToolInvocation } from 'ai';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
@@ -24,15 +24,23 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
             const isUserMessage = role === 'user';
             const isFirst = index === 0;
             const isLast = index === messages.length - 1;
+
+            // checking for annotated message marked as "hidden"
             if (message.annotations) {
               let isHidden = message.annotations.find((annotation: JSONValue) => {
                 if (typeof annotation !== 'object' || typeof annotation?.length === 'number') return false;
                 let object = annotation as any;
                 return object.visibility === 'hidden';
               });
-              console.log('isHidden', isHidden, message);
-
-              if (isHidden) return <></>;
+              if (isHidden) return <Fragment key={index}></Fragment>;
+            }
+            //hide confirmation message that has been answered
+            if (
+              message.toolInvocations?.length == 1 &&
+              message.toolInvocations[0].toolName === 'askForConfirmation' &&
+              (message.toolInvocations[0] as any).result
+            ) {
+              return <Fragment key={index}></Fragment>;
             }
             return (
               <div

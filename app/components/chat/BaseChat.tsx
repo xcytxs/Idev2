@@ -15,6 +15,7 @@ import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
 
 import styles from './BaseChat.module.scss';
+import { ToolManager } from './ToolManager';
 
 const EXAMPLE_PROMPTS = [
   { text: 'Build a todo app in React using Tailwind' },
@@ -92,6 +93,8 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  toolConfig: IToolsConfig;
+  onToolConfigChange?: (val: IToolsConfig) => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -116,6 +119,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       handleStop,
       addToolResult,
+      toolConfig,
+      onToolConfigChange,
     },
     ref,
   ) => {
@@ -208,11 +213,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setProvider={setProvider}
                   providerList={providerList}
                 />
-                <APIKeyManager
-                  provider={provider}
-                  apiKey={apiKeys[provider] || ''}
-                  setApiKey={(key) => updateApiKey(provider, key)}
-                />
+                <div className="flex justify-between">
+                  <ToolManager toolConfig={toolConfig} onConfigChange={onToolConfigChange} />
+
+                  <APIKeyManager
+                    provider={provider}
+                    apiKey={apiKeys[provider] || ''}
+                    setApiKey={(key) => updateApiKey(provider, key)}
+                  />
+                </div>
                 <div
                   className={classNames(
                     'shadow-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden transition-all',

@@ -13,8 +13,6 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from "@octokit/rest";
 import * as nodePath from 'node:path';
-import type { WebContainerProcess } from '@webcontainer/api';
-import { ToolStore } from './tool';
 
 export interface ArtifactState {
   id: string;
@@ -34,7 +32,6 @@ export class WorkbenchStore {
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
-  #toolStore = new ToolStore(webcontainer, this, this.#editorStore);
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
@@ -112,7 +109,9 @@ export class WorkbenchStore {
       }
     }
   }
-
+  updateFile(filePath: string, newContent: string) {
+    this.#editorStore.updateFile(filePath, newContent);
+  }
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
   }
@@ -469,15 +468,6 @@ export class WorkbenchStore {
       alert(`Repository created and code pushed: ${repo.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  async handleToolCall(payload: { toolName: string, args: any, toolCallId: string; }): Promise<string> {
-    try {
-      return await this.#toolStore.handleToolCall(payload);
-    } catch (error: any) {
-      console.error('Error calling tool:', error);
-      return 'error:' + error.message || 'error';
     }
   }
 }

@@ -1,21 +1,36 @@
-import type { WebContainer, FileNode } from '@webcontainer/api';
-import type { FileMap, FilesStore } from './files';
+import type { WebContainer } from '@webcontainer/api';
 import { TEMPLATE_LIST } from '~/utils/constants';
 import * as nodePath from 'node:path';
-import type { EditorStore } from './editor';
-import type { WorkbenchStore } from './workbench';
-
-
-
+import { workbenchStore } from './workbench';
+import { webcontainer } from '../webcontainer';
+import { map, type MapStore } from 'nanostores';
+import type { IToolsConfig } from '~/utils/types';
+import Cookies from 'js-cookie';
 
 export class ToolStore {
     #webcontainer: Promise<WebContainer>;
-    #workbench: WorkbenchStore;
-    #editorStore: EditorStore;
-    constructor(webcontainerPromise: Promise<WebContainer>, workbench: WorkbenchStore, editorStore: EditorStore) {
+    config: MapStore<IToolsConfig> = map<IToolsConfig>({
+        enabled: false,
+        config: {}
+    })
+    constructor(webcontainerPromise: Promise<WebContainer>) {
         this.#webcontainer = webcontainerPromise;
-        this.#workbench = workbench;
-        this.#editorStore = editorStore;
+        let configString = Cookies.get('toolsConfig');
+        if (configString) {
+            try {
+                let config = JSON.parse(configString);
+                this.config.set(config);
+            } catch (error) {
+                console.error('Error parsing tools config:', error);
+            }
+        }
+    }
+    enableTools(enable: boolean) {
+        this.config.setKey('enabled', enable);
+    }
+    setConfig(config: IToolsConfig) {
+        this.config.set(config);
+        Cookies.set('toolsConfig', JSON.stringify(config));
     }
 
     async handleToolCall(payload: { toolName: string, args: any, toolCallId: string; }): Promise<string> {
@@ -59,18 +74,21 @@ export class ToolStore {
                 console.log("Writing to file", fullPath);
 
                 await webcontainer.fs.writeFile(file.path, file.content);
-                await this.#workbench.files.setKey(fullPath, { type: 'file', content: '', isBinary: false })
-                await this.#editorStore.updateFile(fullPath, file.content)
-                await this.#workbench.saveFile(file.path)
-                // await this.#editorStore.setSelectedFile(file.path)
-
-
+                await workbenchStore.files.setKey(fullPath, { type: 'file', content: '', isBinary: false })
+                await workbenchStore.updateFile(fullPath, file.content)
+                await workbenchStore.saveFile(file.path)
             }
+            return this.generateFormattedResult(`template imported successfully`, `
+                here is the imported content,
+                these files are loaded into the bolt. to not write them again, if it don't require changes
+                you only need to write the files that needs changing 
+                
+                ${JSON.stringify(files, null, 2)}
+            `)
         } catch (error) {
             console.error('error importing template', error);
             return 'error fetching template';
         }
-        return 'templace imported successfully';
     }
     private async getGitHubRepoContent(repoName: string, path: string = ''): Promise<{ name: string, path: string, content: string }[]> {
 
@@ -140,4 +158,13 @@ export class ToolStore {
             throw error;
         }
     }
+    private generateFormattedResult(uiResult: string, aiResult?: string) {
+        return `
+        ${uiResult}
+        ---
+        ${aiResult || ""}
+        `
+    }
 }
+
+export const toolStore = new ToolStore(webcontainer);

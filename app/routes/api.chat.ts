@@ -5,6 +5,7 @@ import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+import tools from '~/lib/.server/llm/tools';
 import { z } from 'zod';
 
 export async function action(args: ActionFunctionArgs) {
@@ -12,9 +13,10 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, apiKeys } = await request.json<{
+  const { messages, apiKeys, toolEnabled } = await request.json<{
     messages: Messages,
     apiKeys: Record<string, string>
+    toolEnabled: boolean
   }>();
 
   const stream = new SwitchableStream();
@@ -43,7 +45,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
 
         return stream.switchSource(result.toDataStream());
-      }
+      },
+      tools: toolEnabled ? tools : undefined,
     };
 
     const result = await streamText(messages, context.cloudflare.env, options, apiKeys);

@@ -14,6 +14,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
+import { toolStore } from '~/lib/stores/tool';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -83,6 +84,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const { showChat } = useStore(chatStore);
 
+  const toolConfig = useStore(toolStore.config);
+
   const [animationScope, animate] = useAnimate();
 
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
@@ -91,7 +94,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     api: '/api/chat',
     body: {
       apiKeys,
+      toolEnabled: toolConfig.enabled,
     },
+    maxSteps: 3,
     onError: (error) => {
       logger.error('Request failed\n\n', error);
       toast.error('There was an error processing your request');
@@ -104,7 +109,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       if (toolCall.toolName == 'askForConfirmation') return;
       logger.debug('Calling Tool:', toolCall);
       try {
-        let result = await workbenchStore.handleToolCall({
+        let result = await toolStore.handleToolCall({
           toolName: toolCall.toolName,
           args: toolCall.args,
           toolCallId: toolCall.toolCallId,
@@ -276,6 +281,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       handleInputChange={handleInputChange}
       handleStop={abort}
       addToolResult={addToolResult}
+      toolConfig={toolConfig}
+      onToolConfigChange={(config) => toolStore.setConfig(config)}
       messages={messages.map((message, i) => {
         if (message.role === 'user') {
           return message;

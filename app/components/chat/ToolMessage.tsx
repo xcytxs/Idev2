@@ -15,7 +15,8 @@ const AskForConfirmation = (props: {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }) => {
   const toolCallId = props.toolInvocation.toolCallId;
-  const addResult = (result: string) => (props.addToolResult ? props.addToolResult({ toolCallId, result }) : null);
+  const addResult = (result: string) =>
+    props.addToolResult ? props.addToolResult({ toolCallId, result: result }) : null;
 
   return (
     <div className="overflow-hidden pt-[4px] flex flex-col gap-2">
@@ -53,8 +54,11 @@ export function ToolMessage({ content, data: result, addToolResult }: ToolMessag
       result: (content as any).result,
     });
   }, [content]);
-  if (data?.name == 'askForConfirmation' && (data.state == 'result' || data.state == 'call')) {
-    return <AskForConfirmation toolInvocation={content} addToolResult={addToolResult}></AskForConfirmation>;
+  if (data?.name == 'askForConfirmation') {
+    if (!data.result) {
+      return <AskForConfirmation toolInvocation={content} addToolResult={addToolResult}></AskForConfirmation>;
+    }
+    return <></>;
   }
   return (
     <div className="overflow-hidden pt-[4px]">
@@ -86,7 +90,9 @@ export function ToolMessage({ content, data: result, addToolResult }: ToolMessag
                 )}
                 {/* //results in dimmed tone */}
                 {data.state == 'result' && (
-                  <div className="text-bolt-elements-textSecondary">Output: {(content as any).result}</div>
+                  <div className="text-bolt-elements-textSecondary">
+                    Output: {`${(content as any).result || ''}`.split('---')[0]}
+                  </div>
                 )}
               </div>
             </>
