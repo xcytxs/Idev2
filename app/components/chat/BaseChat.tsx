@@ -13,6 +13,7 @@ import { SendButton } from './SendButton.client';
 import { useState } from 'react';
 import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
+import { VoiceRecordModal } from './VoiceRecordModal';
 
 import styles from './BaseChat.module.scss';
 
@@ -91,6 +92,10 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
+  isRecording: boolean;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+  onCancelRecording: () => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -114,6 +119,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       handleInputChange,
       enhancePrompt,
       handleStop,
+      isRecording,
+      onStartRecording,
+      onStopRecording,
+      onCancelRecording,
     },
     ref,
   ) => {
@@ -280,6 +289,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
+                      <IconButton
+                        icon="i-bolt:microphone"
+                        onClick={onStartRecording}
+                        disabled={isStreaming || enhancingPrompt || isRecording}
+                        title="Record voice message"
+                      />
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">
@@ -316,6 +331,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
         </div>
+        {isRecording && (
+          <VoiceRecordModal
+            isRecording={isRecording}
+            onStop={onStopRecording}
+            onCancel={onCancelRecording}
+          />
+        )}
       </div>
     );
   },
