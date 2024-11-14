@@ -51,7 +51,7 @@ const staticModels: ModelInfo[] = [
 ];
 
 const codeTemplates: TemplateInfo[] = [
-  { name: 'vite-react-js', label: 'Vite React JS', githubRepo: 'thecodacus/vite-react-ts-template' },
+  { name: 'vite-react-ts', label: 'Vite React TS', githubRepo: 'thecodacus/vite-react-ts-template' },
 ];
 
 export let MODEL_LIST: ModelInfo[] = [...staticModels];
