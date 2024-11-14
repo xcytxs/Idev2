@@ -93,11 +93,11 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
-  isRecording: boolean;
-  converting: boolean;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
-  onCancelRecording: () => void;
+  isRecording?: boolean;
+  converting?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onCancelRecording?: () => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(

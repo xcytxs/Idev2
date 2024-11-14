@@ -16,8 +16,8 @@ export function useVoiceToText() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to convert voice to text');
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to convert voice to text');
       }
 
       const reader = response.body?.getReader();
@@ -43,4 +43,4 @@ export function useVoiceToText() {
   };
 
   return { converting, convertVoiceToText };
-} 
+}

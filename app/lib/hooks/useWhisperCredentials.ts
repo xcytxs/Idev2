@@ -13,8 +13,7 @@ export function useWhisperCredentials() {
           setHasCredentials(false);
           return;
         }
-
-        const data = await response.json();
+        const data = await response.json() as { hasCredentials: boolean };
         setHasCredentials(data.hasCredentials);
       } catch (error) {
         setHasCredentials(false);
