@@ -14,7 +14,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
+    - name: 'Build the Docker image'
       run: docker build . --target bolt-ai-development --tag ghcr.io/mambari/bolt.new-any-llm/my-bolt:latest 
-    - name: Push the Docker image
+    - name: 'Login to GitHub Container Registry'
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{github.actor}}
+        password: ${{secrets.GITHUB_TOKEN}}
+    - name: 'Push the Docker image'
       run: docker push ghcr.io/mambari/bolt.new-any-llm/my-bolt:latest
