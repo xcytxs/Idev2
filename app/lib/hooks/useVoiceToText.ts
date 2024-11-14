@@ -20,19 +20,7 @@ export function useVoiceToText() {
         throw new Error(errorData.error || 'Failed to convert voice to text');
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      let text = '';
-
-      if (reader) {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          text += decoder.decode(value);
-        }
-      }
-
+      const text = await response.text();
       return text;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to convert voice to text');
