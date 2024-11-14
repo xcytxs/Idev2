@@ -1,5 +1,3 @@
-import { IconButton } from '../ui/IconButton';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
 import type { IToolsConfig } from '~/utils/types';
 
@@ -17,7 +15,7 @@ export function ToolManager({ toolConfig, onConfigChange }: ToolManagerProps) {
             <label className="text-sm text-bolt-elements-textSecondary">Tool Calling</label>
             <ToggleSwitch
               checked={toolConfig.enabled}
-              onCheckedChange={(e) => {
+              onCheckedChange={(e: boolean) => {
                 onConfigChange?.({
                   enabled: e,
                   config: toolConfig.config,

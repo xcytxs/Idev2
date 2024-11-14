@@ -52,13 +52,6 @@ const staticModels: ModelInfo[] = [
 
 const codeTemplates: TemplateInfo[] = [
   { name: 'vite-react-js', label: 'Vite React JS', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'vite-react-ts', label: 'Vite React TS', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'vite-svelte', label: 'Vite Svelte', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'vite-vue', label: 'Vite Vue', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'nextjs', label: 'NextJS', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'vite-react-tailwind', label: 'Vite React Tailwind', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'vite-react-shadcn', label: 'Vite React Shadcn', githubRepo: 'thecodacus/vite-react-ts-template' },
-  { name: 'python', label: 'Python', githubRepo: 'thecodacus/vite-react-ts-template' },
 ];
 
 export let MODEL_LIST: ModelInfo[] = [...staticModels];
