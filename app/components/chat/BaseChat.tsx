@@ -13,6 +13,8 @@ import { SendButton } from './SendButton.client';
 import { useState } from 'react';
 import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
+import { VoiceRecordModal } from './VoiceRecordModal';
+import { useWhisperCredentials } from '~/lib/hooks/useWhisperCredentials';
 
 import styles from './BaseChat.module.scss';
 
@@ -91,6 +93,11 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
+  isRecording?: boolean;
+  converting?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onCancelRecording?: () => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -114,11 +121,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       handleInputChange,
       enhancePrompt,
       handleStop,
+      isRecording,
+      converting,
+      onStartRecording,
+      onStopRecording,
+      onCancelRecording,
     },
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const { hasCredentials, isLoading } = useWhisperCredentials();
 
     useEffect(() => {
       // Load API keys from cookies on component mount
@@ -218,6 +231,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <textarea
                     ref={textareaRef}
                     className={`w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent transition-all`}
+                    disabled={isStreaming || enhancingPrompt || converting}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
@@ -280,6 +294,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
+                      <IconButton
+                        icon={converting ? "i-ph:spinner-gap" : "i-bolt:microphone"}
+                        onClick={onStartRecording}
+                        disabled={isStreaming || enhancingPrompt || isRecording || converting || !hasCredentials || isLoading}
+                        title={isLoading ? "Checking Whisper credentials..." : 
+                               !hasCredentials ? "Whisper API credentials not configured" : 
+                               "Voice Prompting"}
+                        className={converting ? "animate-spin text-bolt-elements-loader-progress" : ""}
+                      />
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">
@@ -316,6 +339,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
         </div>
+        {isRecording && (
+          <VoiceRecordModal
+            isRecording={isRecording}
+            converting={converting}
+            onStop={onStopRecording}
+            onCancel={onCancelRecording}
+          />
+        )}
       </div>
     );
   },

@@ -16,6 +16,9 @@ import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
+import { useVoiceRecorder } from '~/lib/hooks/useVoiceRecorder';
+import { useVoiceToText } from '~/lib/hooks/useVoiceToText';
+import { VoiceRecordModal } from './VoiceRecordModal';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -232,6 +235,21 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     Cookies.set('selectedProvider', newProvider, { expires: 30 });
   };
 
+  const { isRecording, startRecording, stopRecording, getRecordingBlob } = useVoiceRecorder();
+  const { converting, convertVoiceToText } = useVoiceToText();
+
+  const handleVoiceRecordingComplete = async () => {
+    try {
+      const audioBlob = await getRecordingBlob();
+      const text = await convertVoiceToText(audioBlob);
+      if (text) {
+        setInput(text);
+      }
+    } catch (error) {
+      toast.error('Failed to convert voice to text');
+    }
+  };
+
   return (
     <BaseChat
       ref={animationScope}
@@ -272,6 +290,16 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           provider,
           apiKeys
         );
+      }}
+      isRecording={isRecording}
+      converting={converting}
+      onStartRecording={startRecording}
+      onStopRecording={async () => {
+        stopRecording();
+        await handleVoiceRecordingComplete();
+      }}
+      onCancelRecording={() => {
+        stopRecording();
       }}
     />
   );
