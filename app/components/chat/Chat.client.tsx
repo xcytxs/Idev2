@@ -18,6 +18,7 @@ import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
 import { useVoiceRecorder } from '~/lib/hooks/useVoiceRecorder';
 import { useVoiceToText } from '~/lib/hooks/useVoiceToText';
+import { VoiceRecordModal } from './VoiceRecordModal';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -241,7 +242,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     try {
       const audioBlob = await getRecordingBlob();
       const text = await convertVoiceToText(audioBlob);
-      setInput(text);
+      if (text) {
+        setInput(text);
+      }
     } catch (error) {
       toast.error('Failed to convert voice to text');
     }
@@ -289,6 +292,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         );
       }}
       isRecording={isRecording}
+      converting={converting}
       onStartRecording={startRecording}
       onStopRecording={async () => {
         stopRecording();

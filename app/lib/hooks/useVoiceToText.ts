@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { createScopedLogger } from '~/utils/logger';
-
-const logger = createScopedLogger('useVoiceToText');
+import { toast } from 'react-toastify';
 
 export function useVoiceToText() {
   const [converting, setConverting] = useState(false);
@@ -16,6 +14,11 @@ export function useVoiceToText() {
         method: 'POST',
         body: formData,
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to convert voice to text');
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -32,8 +35,8 @@ export function useVoiceToText() {
 
       return text;
     } catch (error) {
-      logger.error('Failed to convert voice to text:', error);
-      throw error;
+      toast.error(error instanceof Error ? error.message : 'Failed to convert voice to text');
+      return null;
     } finally {
       setConverting(false);
     }

@@ -5,9 +5,10 @@ interface VoiceRecordModalProps {
   isRecording: boolean;
   onStop: () => void;
   onCancel: () => void;
+  converting?: boolean;
 }
 
-export function VoiceRecordModal({ isRecording, onStop, onCancel }: VoiceRecordModalProps) {
+export function VoiceRecordModal({ isRecording, onStop, onCancel, converting }: VoiceRecordModalProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -60,19 +61,19 @@ export function VoiceRecordModal({ isRecording, onStop, onCancel }: VoiceRecordM
         
         <div 
           ref={glowRef}
-          className="w-32 h-32 rounded-full bg-bolt-background-primary/80 flex items-center justify-center cursor-pointer 
+          className={`w-32 h-32 rounded-full bg-bolt-background-primary/80 flex items-center justify-center 
             transition-all duration-300 
-            hover:bg-red-900/30
-            [&:hover]:shadow-[0_0_30px_12px_rgba(220,38,38,0.25)]
+            ${converting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-red-900/30 [&:hover]:shadow-[0_0_30px_12px_rgba(220,38,38,0.25)]'}
             group
-            relative"
-          onClick={onStop}
+            relative`}
+          onClick={!converting ? onStop : undefined}
         >
-          <div className="i-bolt:microphone text-4xl text-bolt-foreground-primary transition-colors group-hover:text-red-500" />
+          <div className={`text-4xl transition-colors group-hover:text-red-500 
+            ${converting ? 'i-ph:spinner-gap animate-spin text-bolt-elements-loader-progress' : 'i-bolt:microphone text-bolt-foreground-primary'}`} />
         </div>
         
         <p className="text-center mt-8 text-white/70 font-medium">
-          {isRecording ? 'Click to stop recording' : 'Starting...'}
+          {converting ? 'Converting to text...' : isRecording ? 'Click to stop recording' : 'Starting...'}
         </p>
       </div>
     </div>

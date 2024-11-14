@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import { VoiceRecordModal } from './VoiceRecordModal';
+import { useWhisperCredentials } from '~/lib/hooks/useWhisperCredentials';
 
 import styles from './BaseChat.module.scss';
 
@@ -93,6 +94,7 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   isRecording: boolean;
+  converting: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onCancelRecording: () => void;
@@ -120,6 +122,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       handleStop,
       isRecording,
+      converting,
       onStartRecording,
       onStopRecording,
       onCancelRecording,
@@ -128,6 +131,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const { hasCredentials, isLoading } = useWhisperCredentials();
 
     useEffect(() => {
       // Load API keys from cookies on component mount
@@ -227,6 +231,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <textarea
                     ref={textareaRef}
                     className={`w-full pl-4 pt-4 pr-16 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent transition-all`}
+                    disabled={isStreaming || enhancingPrompt || converting}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
@@ -290,10 +295,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         )}
                       </IconButton>
                       <IconButton
-                        icon="i-bolt:microphone"
+                        icon={converting ? "i-ph:spinner-gap" : "i-bolt:microphone"}
                         onClick={onStartRecording}
-                        disabled={isStreaming || enhancingPrompt || isRecording}
-                        title="Record voice message"
+                        disabled={isStreaming || enhancingPrompt || isRecording || converting || !hasCredentials || isLoading}
+                        title={isLoading ? "Checking Whisper credentials..." : 
+                               !hasCredentials ? "Whisper API credentials not configured" : 
+                               "Voice Prompting"}
+                        className={converting ? "animate-spin text-bolt-elements-loader-progress" : ""}
                       />
                     </div>
                     {input.length > 3 ? (
@@ -334,6 +342,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {isRecording && (
           <VoiceRecordModal
             isRecording={isRecording}
+            converting={converting}
             onStop={onStopRecording}
             onCancel={onCancelRecording}
           />
