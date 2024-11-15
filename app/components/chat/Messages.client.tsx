@@ -17,11 +17,14 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
   return (
     <div id={id} ref={ref} className={props.className}>
       {messages.length > 0
-        ? messages.map((message, index) => {
-            const { role, content } = message;
-            const isUserMessage = role === 'user';
-            const isFirst = index === 0;
-            const isLast = index === messages.length - 1;
+        ? messages
+            // filter out tool responses
+            .filter((message) => !(message.annotations?.find((a) => a === 'toolResponse')))
+            .map((message, index) => {
+              const { role, content } = message;
+              const isUserMessage = role === 'user';
+              const isFirst = index === 0;
+              const isLast = index === messages.length - 1;
 
             return (
               <div

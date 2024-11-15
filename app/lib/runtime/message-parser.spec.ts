@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
+import { AgentOutputParser } from '../agents/agent-output-parser';
 
 interface ExpectedResult {
   output: string;
@@ -181,6 +182,7 @@ function runTest(input: string | string[], outputOrExpectedResult: string | Expe
   const parser = new StreamingMessageParser({
     artifactElement: () => '',
     callbacks,
+    agentOutputParser: new AgentOutputParser()
   });
 
   let message = '';

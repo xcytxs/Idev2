@@ -15,6 +15,7 @@ import { APIKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
 
 import styles from './BaseChat.module.scss';
+import { ToolManager } from './ToolManager';
 
 const EXAMPLE_PROMPTS = [
   { text: 'Build a todo app in React using Tailwind' },
@@ -91,6 +92,7 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
+  
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -119,7 +121,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-
+    const [toolConfig, setToolConfig] = useState<IToolsConfig>({
+      enabled: false,
+      config: {}
+    });
     useEffect(() => {
       // Load API keys from cookies on component mount
       try {
@@ -134,6 +139,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         console.error('Error loading API keys from cookies:', error);
         // Clear invalid cookie data
         Cookies.remove('apiKeys');
+      }
+    }, []);
+
+    useEffect(() => {
+      const config = Cookies.get('bolt.toolsConfig'); 
+      if (config) {
+        try {
+          const parsedConfig = JSON.parse(config);
+          setToolConfig(parsedConfig);
+        } catch (error) {
+          console.error('Error parsing tools config:', error);
+          // Clear invalid cookie data
+          Cookies.remove('bolt.toolsConfig');
+        }
+      }
+      else{
+        Cookies.set('bolt.toolsConfig', JSON.stringify(toolConfig), {
+          path: '/', // Accessible across the site
+        });
       }
     }, []);
 
@@ -205,11 +229,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setProvider={setProvider}
                   providerList={providerList}
                 />
-                <APIKeyManager
-                  provider={provider}
-                  apiKey={apiKeys[provider] || ''}
-                  setApiKey={(key) => updateApiKey(provider, key)}
-                />
+                <div className="flex justify-between items-center">
+                  <ToolManager toolConfig={toolConfig} onConfigChange={(config) => {
+                    setToolConfig(config)
+                    Cookies.set('bolt.toolsConfig', JSON.stringify(config), {
+                      path: '/', // Accessible across the site
+                    });
+                  }} />
+                  <APIKeyManager
+                    provider={provider}
+                    apiKey={apiKeys[provider] || ''}
+                    setApiKey={(key) => updateApiKey(provider, key)}
+                  />
+                </div>
                 <div
                   className={classNames(
                     'shadow-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden transition-all',

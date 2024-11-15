@@ -5,8 +5,8 @@ import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
-import type { ITerminal } from '~/types/terminal';
 import type { BoltShell } from '~/utils/shell';
+import { agentRegistry } from '~/utils/agentFactory';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -77,7 +77,7 @@ export class ActionRunner {
     });
   }
 
-  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  async runAction(data: ActionCallbackData, isStreaming: boolean = false,onFinish?:(data:ActionCallbackData)=>void) {
     const { actionId } = data;
     const action = this.actions.get()[actionId];
 
@@ -94,6 +94,11 @@ export class ActionRunner {
 
     this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming });
 
+    this.#currentExecutionPromise.then(() => {
+      onFinish?.(data);
+      return;
+    })
+    
     this.#currentExecutionPromise = this.#currentExecutionPromise
       .then(() => {
         return this.#executeAction(actionId, isStreaming);
@@ -120,6 +125,11 @@ export class ActionRunner {
         }
         case 'start': {
           await this.#runStartAction(action)
+          break;
+        }
+        case 'tool': {
+          let resp=await this.#runToolAction(action);
+          this.#updateAction(actionId,{ result:resp,status:'complete' } as any);
           break;
         }
       }
@@ -199,6 +209,25 @@ export class ActionRunner {
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
     }
+  }
+
+  async #runToolAction(action: ActionState) {
+    if (action.type !== 'tool') {
+      unreachable('Expected tool action');
+    }
+    const agent = agentRegistry[action.agentId];
+    if (!agent) {
+      unreachable('Agent not found');
+    }
+    if (!action.parameters) {
+      unreachable('Parameters not found');
+    }
+    let { valid, errors } = agent.validateToolParameters(action.toolName, action.parameters);
+    if (!valid) {
+      throw new Error("Error In Tool parameters: " + errors?.join(', '));
+    }
+    const result = await agent.executeTool(action.toolName, action.parameters);
+    return result;
   }
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();

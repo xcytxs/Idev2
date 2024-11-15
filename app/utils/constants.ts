@@ -1,4 +1,4 @@
-import type { ModelInfo, OllamaApiResponse, OllamaModel } from './types';
+import type { ModelInfo, OllamaApiResponse, OllamaModel, TemplateInfo } from './types';
 
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
@@ -49,6 +49,13 @@ const staticModels: ModelInfo[] = [
   { name: 'codestral-latest', label: 'Codestral', provider: 'Mistral' },
   { name: 'mistral-large-latest', label: 'Mistral Large Latest', provider: 'Mistral' },
 ];
+
+const codeTemplates: TemplateInfo[] = [
+  { name: 'vite-react-ts', label: 'Vite React TS', githubRepo: 'thecodacus/vite-react-ts-template' },
+  { name: 'blank', label: 'Start from scratch', githubRepo: '' },
+];
+export let TEMPLATE_LIST: TemplateInfo[] = [...codeTemplates];
+
 
 export let MODEL_LIST: ModelInfo[] = [...staticModels];
 

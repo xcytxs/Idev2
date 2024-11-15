@@ -2,6 +2,8 @@ import type { ActionType, BoltAction, BoltActionData, FileAction, ShellAction } 
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+import { AgentOutputParser } from '../agents/agent-output-parser';
+import { agentRegistry } from '~/utils/agentFactory';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
 const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
@@ -41,11 +43,14 @@ type ElementFactory = (props: ElementFactoryProps) => string;
 export interface StreamingMessageParserOptions {
   callbacks?: ParserCallbacks;
   artifactElement?: ElementFactory;
+  agentOutputParser: AgentOutputParser;
+
 }
 
 interface MessageState {
   position: number;
   insideArtifact: boolean;
+  insideToolCall: boolean;
   insideAction: boolean;
   currentArtifact?: BoltArtifactData;
   currentAction: BoltActionData;
@@ -54,16 +59,18 @@ interface MessageState {
 
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
-
-  constructor(private _options: StreamingMessageParserOptions = {}) { }
+  constructor(private _options: StreamingMessageParserOptions = {agentOutputParser:new AgentOutputParser()}) {
+    
+  }
 
   parse(messageId: string, input: string) {
     let state = this.#messages.get(messageId);
-
+    const TOOL_CALL_TAG_OPEN = this._options.agentOutputParser.getToolCallTagOpen();
     if (!state) {
       state = {
         position: 0,
         insideAction: false,
+        insideToolCall: false,
         insideArtifact: false,
         currentAction: { content: '' },
         actionId: 0,
@@ -166,15 +173,40 @@ export class StreamingMessageParser {
             state.currentArtifact = undefined;
 
             i = artifactCloseIndex + ARTIFACT_TAG_CLOSE.length;
+
           } else {
             break;
           }
         }
-      } else if (input[i] === '<' && input[i + 1] !== '/') {
+      }
+      if (state.insideToolCall) {
+        let { cursor, event } = this._options.agentOutputParser.parse(messageId, input);
+        if (event && event.type == 'toolCallStart'){
+          const artifactFactory = this._options.artifactElement ?? createArtifactElement;
+          output += artifactFactory({ messageId });
+          // console.log("adding artifact", { output });
+          // earlyBreak = true;
+          break;
+        }
+        if (event && event.type == 'toolCallComplete') {
+            state.position += cursor.position + 1;
+            i = state.position;
+            state.insideToolCall = false;
+            
+            const artifactFactory = this._options.artifactElement ?? createArtifactElement;
+            output += artifactFactory({ messageId });
+            console.log("adding artifact", { output });
+            
+            break;
+          }
+
+        break
+        
+      }
+      else if (input[i] === '<' && input[i + 1] !== '/') {
         let j = i;
         let potentialTag = '';
-
-        while (j < input.length && potentialTag.length < ARTIFACT_TAG_OPEN.length) {
+        while (j < input.length && (potentialTag.length < ARTIFACT_TAG_OPEN.length || potentialTag.length < TOOL_CALL_TAG_OPEN.length)) {
           potentialTag += input[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
@@ -223,7 +255,12 @@ export class StreamingMessageParser {
             }
 
             break;
-          } else if (!ARTIFACT_TAG_OPEN.startsWith(potentialTag)) {
+          }
+          else if (potentialTag == TOOL_CALL_TAG_OPEN) {
+            state.insideToolCall = true;
+            break;
+          }
+          else if (!ARTIFACT_TAG_OPEN.startsWith(potentialTag) && !TOOL_CALL_TAG_OPEN.startsWith(potentialTag)) {
             output += input.slice(i, j + 1);
             i = j + 1;
             break;
@@ -234,6 +271,9 @@ export class StreamingMessageParser {
 
         if (j === input.length && ARTIFACT_TAG_OPEN.startsWith(potentialTag)) {
           break;
+        }
+        if (j == input.length && TOOL_CALL_TAG_OPEN.startsWith(potentialTag) ){
+          break
         }
       } else {
         output += input[i];

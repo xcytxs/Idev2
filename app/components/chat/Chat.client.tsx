@@ -1,7 +1,5 @@
-// @ts-nocheck
-// Preventing TS checks with files presented in the video for a better presentation.
 import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
+import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -16,6 +14,8 @@ import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
+import { useWaitForLoading } from '~/lib/hooks/useWaitForLoading';
+import type { IToolsConfig } from '~/utils/types';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -89,10 +89,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
+  const [toolConfig, setToolConfig] = useState<IToolsConfig>({
+    enabled: false,
+    config: {}
+  });
+
+
   const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
     api: '/api/chat',
     body: {
-      apiKeys
+      apiKeys,
+      toolConfig
     },
     onError: (error) => {
       logger.error('Request failed\n\n', error);
@@ -103,21 +110,36 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
     initialMessages,
   });
+  const waitForLoading = useWaitForLoading(isLoading);
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
 
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
+  
   useEffect(() => {
     chatStore.setKey('started', initialMessages.length > 0);
+    let toolConfig=Cookies.get('bolt.toolsConfig');
+    if (toolConfig) {
+      try {
+        const parsedConfig = JSON.parse(toolConfig);
+        setToolConfig(parsedConfig);
+      } catch (error) {
+        console.error('Error parsing tools config:', error);
+        // Clear invalid cookie data
+        Cookies.remove('bolt.toolsConfig');
+      }
+    }
   }, []);
 
   useEffect(() => {
     parseMessages(messages, isLoading);
-
+    
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+      // filter out tool responses as it will be automatically added by the runner
+      let filteredMessages = messages.filter((message) => !message.annotations?.find((a) => a === 'toolResponse'));
+      storeMessageHistory(filteredMessages).catch((error) => toast.error(error.message));
     }
   }, [messages, isLoading, parseMessages]);
 
@@ -163,7 +185,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setChatStarted(true);
   };
 
-  const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
+  const sendMessage = async (_event: React.UIEvent, messageInput?: string,annotations?:string[]) => {
     const _input = messageInput || input;
 
     if (_input.length === 0 || isLoading) {
@@ -195,7 +217,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
        * manually reset the input and we'd have to manually pass in file attachments. However, those
        * aren't relevant here.
        */
-      append({ role: 'user', content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${diff}\n\n${_input}` });
+      append({ role: 'user', content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${diff}\n\n${_input}`,annotations });
 
       /**
        * After sending a new message we reset all modifications since the model
@@ -212,6 +234,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     textareaRef.current?.blur();
   };
+    useEffect(() => {
+      workbenchStore.addChatMessage = async(message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => {
+        await waitForLoading();
+        return await append(
+          {
+            ...message,
+            content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${message.content}`,
+          },
+          chatRequestOptions,
+        );
+      }
+    }, [append]);
+
 
   const [messageRef, scrollRef] = useSnapScroll();
 

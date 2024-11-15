@@ -11,7 +11,7 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, apiKeys } = await request.json<{ 
+  const { messages, apiKeys, toolConfig } = await request.json<{
     messages: Messages,
     apiKeys: Record<string, string>
   }>();
@@ -20,7 +20,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const options: StreamingOptions = {
-      toolChoice: 'none',
       apiKeys,
       onFinish: async ({ text: content, finishReason }) => {
         if (finishReason !== 'length') {
@@ -44,7 +43,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
     };
 
-    const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
+    const result = await streamText(messages, context.cloudflare.env, options, apiKeys,toolConfig);
 
     stream.switchSource(result.toAIStream());
 
@@ -56,7 +55,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error) {
     console.log(error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Response('Invalid or missing API key', {
         status: 401,
