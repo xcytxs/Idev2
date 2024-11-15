@@ -56,6 +56,7 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   renderLogger.trace('Workbench');
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -116,6 +117,21 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     }
   }, []);
 
+  const handleLoadFromFileSystem = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const directoryHandle = await window.showDirectoryPicker();
+      await workbenchStore.loadFromFileSystem(directoryHandle);
+      toast.success('Files loaded successfully');
+    } catch (error) {
+      console.error('Error loading files:', error);
+      toast.error('Failed to load files');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return (
     chatStarted && (
       <motion.div
@@ -152,6 +168,10 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                     <PanelHeaderButton className="mr-1 text-sm" onClick={handleSyncFiles} disabled={isSyncing}>
                       {isSyncing ? <div className="i-ph:spinner" /> : <div className="i-ph:cloud-arrow-down" />}
                       {isSyncing ? 'Syncing...' : 'Sync Files'}
+                    </PanelHeaderButton>
+                    <PanelHeaderButton className="mr-1 text-sm" onClick={handleLoadFromFileSystem} disabled={isLoading}>
+                      {isLoading ? <div className="i-ph:spinner" /> : <div className="i-ph:cloud-arrow-up" />}
+                      {isLoading ? 'Loading...' : 'Load from Filesystem'}
                     </PanelHeaderButton>
                     <PanelHeaderButton
                       className="mr-1 text-sm"
@@ -230,6 +250,7 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     )
   );
 });
+
 interface ViewProps extends HTMLMotionProps<'div'> {
   children: JSX.Element;
 }

@@ -91,7 +91,6 @@ export class WorkbenchStore {
     this.#terminalStore.attachTerminal(terminal);
   }
   attachBoltTerminal(terminal: ITerminal) {
-
     this.#terminalStore.attachBoltTerminal(terminal);
   }
 
@@ -366,8 +365,36 @@ export class WorkbenchStore {
     return syncedFiles;
   }
 
-  async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {
+  async loadFromFileSystem(sourceHandle: FileSystemDirectoryHandle) {
+    const wc = await webcontainer;
+    
+    async function processDirectory(handle: FileSystemDirectoryHandle, currentPath: string = '') {
+      for await (const entry of handle.values()) {
+        const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+        
+        if (entry.kind === 'file') {
+          const file = await entry.getFile();
+          const content = await file.text();
+          
+          // Create necessary directories
+          const dirPath = nodePath.dirname(entryPath);
+          if (dirPath !== '.') {
+            await wc.fs.mkdir(dirPath, { recursive: true });
+          }
+          
+          // Write file content
+          await wc.fs.writeFile(entryPath, content);
+        } else if (entry.kind === 'directory') {
+          await wc.fs.mkdir(entryPath, { recursive: true });
+          await processDirectory(entry, entryPath);
+        }
+      }
+    }
 
+    await processDirectory(sourceHandle);
+  }
+
+  async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {
     try {
       // Get the GitHub auth token from environment variables
       const githubToken = ghToken;
