@@ -241,7 +241,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         return await append(
           {
             ...message,
-            content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${message.content}`,
+            content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${message.content}`,
           },
           chatRequestOptions,
         );
