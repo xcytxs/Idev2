@@ -61,7 +61,7 @@ export function getOllamaModel(baseURL: string, model: string) {
     numCtx: 32768,
   });
 
-  Ollama.config.baseURL = `${baseURL}/api`;
+  Ollama.config.baseURL = `http://127.0.0.1:11434/api`;
   return Ollama;
 }
 

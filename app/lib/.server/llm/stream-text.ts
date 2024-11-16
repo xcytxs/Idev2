@@ -66,7 +66,10 @@ export function streamText(
 
     return message; // No changes for non-user messages
   });
-
+  currentModel = 'llama3.1:8b';
+  console.log('Processed messages:', processedMessages);
+  console.log('Current model:', currentModel);
+  console.log('Current provider:', currentProvider);
   return _streamText({
     model: getModel(currentProvider, currentModel, env, apiKeys),
     system: getSystemPrompt(),
