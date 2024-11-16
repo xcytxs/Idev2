@@ -2,7 +2,6 @@ import { TEMPLATE_LIST } from '~/utils/constants';
 import * as nodePath from 'node:path';
 import { matchPatterns } from '~/utils/matchPatterns';
 import { BaseTool } from './base-tool';
-import { workbenchStore } from '../stores/workbench';
 import type { WebContainer } from '@webcontainer/api';
 
 export class ProjectTemplateImportTool extends BaseTool {
@@ -76,22 +75,76 @@ export class ProjectTemplateImportTool extends BaseTool {
 
             let templatePromptFile = files.filter(x => x.path.startsWith(".bolt")).find(x => x.name == 'prompt')
 
-            return this.generateFormattedResult(`template imported successfully`, `
-                here is the imported content,
-                these files are loaded into the bolt. to not write them again, if it don't require changes
-                you only need to write the files that needs changing,
-                dont forget to install the dependencies before running the project
+            return this.generateFormattedResult(`Project Scaffolding Is Complete`, `
+                # Project Scaffolding Is Complete 
 
-                ${templatePromptFile ? `
-                <User Instruction>
-                ${templatePromptFile.content}
-                <User Instruction>
-                    `: ''
-                }
+# Project Context
 
-                <Imported Files>
-                    ${JSON.stringify(filteredFiles, null, 2)}
-                <Imported Files>
+## Imported Files
+${ JSON.stringify(
+    filteredFiles
+    // .map(x => x.path)
+    , null, 2) }
+
+
+${templatePromptFile ? `
+## User Requirements
+${templatePromptFile.content}
+` : ''}
+
+# Development Process (In Strict Order)
+
+1. STEP 1: Dependencies Installation
+   npm install   # MANDATORY - Must be run first
+
+2. STEP 2: Planning Phase
+   - Create implementation plan
+   - List required files
+   - Document dependencies
+
+3. STEP 3: Implementation
+   - Follow architecture requirements
+   - Create/modify files
+   - Test functionality
+
+## Architecture Requirements
+- Break down functionality into modular components
+- Maximum file size: 500 lines of code
+- Follow single responsibility principle
+- Create reusable utility functions where appropriate
+
+## Project Constraints
+1. Template Usage
+   - Do NOT import additional templates
+   - Existing template is pre-imported and should be used
+
+2. Code Organization
+   - Create separate files for distinct functionalities
+   - Use meaningful file and function names
+   - Implement proper error handling
+
+3. Boilerplate Protection
+   - Do NOT modify boilerplate files
+   - Exception: Only if absolutely necessary for core functionality
+   - Document any required boilerplate changes
+
+4. Dependencies
+   - All dependencies must be installed via npm/yarn
+   - List all required dependencies with versions
+   - Include installation commands in documentation
+
+## Expected Deliverables
+1. Implementation plan
+2. List of files to be created/modified
+3. Dependencies list with installation commands
+4. Code implementation
+5. Basic usage documentation
+
+## Important Notes
+- These guidelines are mandatory and non-negotiable
+- Provide clear comments for complex logic
+- Include error handling for critical operations
+- Document any assumptions made during implementation
             `)
         } catch (error) {
             console.error('error importing template', error);
