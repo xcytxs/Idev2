@@ -33,7 +33,7 @@ function extractPropertiesFromMessage(message: Message): { model: string; provid
 
   // Extract provider
   const providerMatch = message.content.match(PROVIDER_REGEX);
-  const provider = providerMatch ? providerMatch[1] : DEFAULT_PROVIDER;
+  const provider = providerMatch ? providerMatch[1] : DEFAULT_PROVIDER.name;
 
   // Remove model and provider lines from content
   const cleanedContent = message.content
@@ -89,7 +89,7 @@ export async function streamText(
   toolConfig?: IToolsConfig
 ) {
   let currentModel = DEFAULT_MODEL;
-  let currentProvider = DEFAULT_PROVIDER;
+  let currentProvider = DEFAULT_PROVIDER.name;
 
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {

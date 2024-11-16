@@ -15,8 +15,7 @@ import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
 import { useWaitForLoading } from '~/lib/hooks/useWaitForLoading';
-import type { IToolsConfig } from '~/utils/types';
-import type { ProviderInfo } from '~/utils/types';
+import type { IToolsConfig, ProviderInfo } from '~/utils/types';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -306,7 +305,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
             scrollTextArea();
           },
           model,
-          provider,
+          provider.name,
           apiKeys
         );
       }}
