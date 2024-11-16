@@ -44,7 +44,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({
       ) : (
         <>
           <span className="flex-1 text-sm text-bolt-elements-textPrimary">
-            {apiKey ? '••••••••' : 'Not set (will still work if set in .env file)'}
+            {apiKey ? '••••••••' : 'Not set (works via .env)'}
           </span>
           <IconButton onClick={() => setIsEditing(true)} title="Edit API Key">
             <div className="i-ph:pencil-simple" />
