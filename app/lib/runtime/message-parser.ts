@@ -143,6 +143,21 @@ export class StreamingMessageParser {
             }
             break;
           }
+        } else if (state.insideToolCall) {
+          let { cursor, event } = this._options.agentOutputParser.parse(messageId, input);
+          if (event && event.type == 'toolCallComplete') {
+            state.position += cursor.position + 1;
+            i = state.position;
+            state.insideToolCall = false;
+
+            const artifactFactory = this._options.artifactElement ?? createArtifactElement;
+            output += artifactFactory({ messageId }) || '';
+
+            break;
+          }
+
+          break
+
         } else {
           const actionOpenIndex = input.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
           const artifactCloseIndex = input.indexOf(ARTIFACT_TAG_CLOSE, i);
@@ -179,22 +194,7 @@ export class StreamingMessageParser {
           }
         }
       }
-      if (state.insideToolCall) {
-        let { cursor, event } = this._options.agentOutputParser.parse(messageId, input);
-        if (event && event.type == 'toolCallComplete') {
-            state.position += cursor.position + 1;
-            i = state.position;
-            state.insideToolCall = false;
-            
-            const artifactFactory = this._options.artifactElement ?? createArtifactElement;
-            output += artifactFactory({ messageId })||'';
-            
-            break;
-          }
-
-        break
-        
-      }
+      
       else if (input[i] === '<' && input[i + 1] !== '/') {
         let j = i;
         let potentialTag = '';
