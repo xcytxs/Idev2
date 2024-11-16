@@ -34,7 +34,7 @@ const ModelSelector = ({ model, setModel, provider, setProvider, modelList, prov
       <select
         value={provider?.name}
         onChange={(e) => {
-          setProvider(providerList.find(p => p.name === e.target.value));
+          setProvider(providerList.find((p) => p.name === e.target.value));
           const firstModel = [...modelList].find((m) => m.provider == e.target.value);
           setModel(firstModel ? firstModel.name : '');
         }}
@@ -50,7 +50,7 @@ const ModelSelector = ({ model, setModel, provider, setProvider, modelList, prov
         key={provider?.name}
         value={model}
         onChange={(e) => setModel(e.target.value)}
-        style={{maxWidth: "70%"}}
+        style={{ maxWidth: '70%' }}
         className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
       >
         {[...modelList]
@@ -113,16 +113,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    console.log(provider);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [toolConfig, setToolConfig] = useState<IToolsConfig>({
       enabled: false,
       config: {}
     });
-
+    
     const [modelList, setModelList] = useState(MODEL_LIST);
-
+    
     useEffect(() => {
       // Load API keys from cookies on component mount
       try {
@@ -139,7 +138,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         Cookies.remove('apiKeys');
       }
 
-      initializeModelList().then(modelList => {
+      initializeModelList().then((modelList) => {
         setModelList(modelList);
       });
     }, []);
@@ -240,11 +239,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       path: '/', // Accessible across the site
                     });
                   }} />
+                 {provider && (
                   <APIKeyManager
                     provider={provider}
-                    apiKey={apiKeys[provider] || ''}
-                    setApiKey={(key) => updateApiKey(provider, key)}
+                    apiKey={apiKeys[provider.name] || ''}
+                    setApiKey={(key) => updateApiKey(provider.name, key)}
                   />
+                )}
                 </div>
                 <div
                   className={classNames(
