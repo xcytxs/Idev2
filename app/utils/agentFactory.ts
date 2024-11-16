@@ -9,7 +9,11 @@ let codeTemplateAgent = new Agent({
     agentId: 'project-scaffold',
     name: 'Project Scaffolding Agent',
     description: 'Initializes new projects by selecting and applying appropriate project templates',
-    purpose: 'Initialize new projects only at the start of development. This agent should only be selected for queries that needs to setup a framework/codebase, not for general coding questions or existing projects.',
+    purpose: `Initialize new projects only at the start of development. 
+    This agent should only be selected for queries that needs to setup a framework/codebase, 
+    NOT for general coding questions or existing projects.
+    MUST USE THIS ONLY AT THE START OF DEVELOPMENT.
+    `,
     rules: [
         {
             category: 'template-selection',

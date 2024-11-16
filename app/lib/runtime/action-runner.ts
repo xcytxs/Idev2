@@ -91,17 +91,15 @@ export class ActionRunner {
     if (isStreaming && action.type !== 'file') {
       return;
     }
-
+    
     this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming });
 
-    this.#currentExecutionPromise.then(() => {
-      onFinish?.(data);
-      return;
-    })
-    
     this.#currentExecutionPromise = this.#currentExecutionPromise
       .then(() => {
         return this.#executeAction(actionId, isStreaming);
+      }).then(()=>{
+        onFinish?.({...data});
+        return ;
       })
       .catch((error) => {
         console.error('Action failed:', error);
@@ -110,7 +108,7 @@ export class ActionRunner {
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
-
+    
     this.#updateAction(actionId, { status: 'running' });
 
     try {
@@ -129,7 +127,7 @@ export class ActionRunner {
         }
         case 'tool': {
           let resp=await this.#runToolAction(action);
-          this.#updateAction(actionId,{ result:resp,status:'complete' } as any);
+          this.#updateAction(actionId,{ result:resp } as any);
           break;
         }
       }

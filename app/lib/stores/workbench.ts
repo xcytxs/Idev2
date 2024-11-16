@@ -266,8 +266,6 @@ export class WorkbenchStore {
     }
 
     artifact.runner.addAction(data);
-    console.log(artifact.runner.actions.get());
-    
   }
 
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
@@ -278,6 +276,9 @@ export class WorkbenchStore {
     if (!artifact) {
       unreachable('Artifact not found');
     }
+    let action=artifact.runner.actions.get()[data.actionId];
+    artifact.runner.actions.setKey(data.actionId, { ...action,...data.action});
+    
     if (data.action.type === 'file') {
       let wc = await webcontainer
       const fullPath = nodePath.join(wc.workdir, data.action.filePath);
@@ -288,18 +289,19 @@ export class WorkbenchStore {
         this.currentView.set('code');
       }
       const doc = this.#editorStore.documents.get()[fullPath];
+      
       if (!doc) {
         await artifact.runner.runAction(data, isStreaming);
       }
-
+      
       this.#editorStore.updateFile(fullPath, data.action.content);
-
+      
       if (!isStreaming) {
         this.resetCurrentDocument();
         await artifact.runner.runAction(data)
       }
     } 
-    if (data.action.type === 'tool') {
+    else if (data.action.type === 'tool') {
       await new Promise<void>((resolve=>{
         artifact.runner.runAction(data,false,async ()=>{
           resolve();

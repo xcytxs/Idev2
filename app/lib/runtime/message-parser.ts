@@ -181,21 +181,13 @@ export class StreamingMessageParser {
       }
       if (state.insideToolCall) {
         let { cursor, event } = this._options.agentOutputParser.parse(messageId, input);
-        if (event && event.type == 'toolCallStart'){
-          const artifactFactory = this._options.artifactElement ?? createArtifactElement;
-          output += artifactFactory({ messageId });
-          // console.log("adding artifact", { output });
-          // earlyBreak = true;
-          break;
-        }
         if (event && event.type == 'toolCallComplete') {
             state.position += cursor.position + 1;
             i = state.position;
             state.insideToolCall = false;
             
             const artifactFactory = this._options.artifactElement ?? createArtifactElement;
-            output += artifactFactory({ messageId });
-            console.log("adding artifact", { output });
+            output += artifactFactory({ messageId })||'';
             
             break;
           }
@@ -206,7 +198,7 @@ export class StreamingMessageParser {
       else if (input[i] === '<' && input[i + 1] !== '/') {
         let j = i;
         let potentialTag = '';
-        while (j < input.length && (potentialTag.length < ARTIFACT_TAG_OPEN.length || potentialTag.length < TOOL_CALL_TAG_OPEN.length)) {
+        while (j < input.length && (potentialTag.length < ARTIFACT_TAG_OPEN.length)) {
           potentialTag += input[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
@@ -247,7 +239,7 @@ export class StreamingMessageParser {
 
               const artifactFactory = this._options.artifactElement ?? createArtifactElement;
 
-              output += artifactFactory({ messageId });
+              output += artifactFactory({ messageId })||'';
 
               i = openTagEnd + 1;
             } else {

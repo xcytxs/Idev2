@@ -61,7 +61,6 @@ async function generateSystemPrompt(messages: Messages,
     messages: convertToCoreMessages(messages),
     ...options,
   })
-  console.log({ coordResp });
   let agentOutputParser = new AgentOutputParser();
   let coordOutput = agentOutputParser.parse(`${Date.now()}`, coordResp)
 
@@ -113,7 +112,7 @@ export async function streamText(
    systemPrompt= await generateSystemPrompt(processedMessages, env, currentProvider, currentModel, options, apiKeys) 
   }
   
-  return await _streamText({
+  return  _streamText({
     model: getModel(currentProvider, currentModel, env, apiKeys) as any,
     system: systemPrompt,
     maxTokens: MAX_TOKENS,

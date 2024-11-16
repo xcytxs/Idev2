@@ -10,7 +10,6 @@ export class ProjectTemplateImportTool extends BaseTool {
         super(webcontainerPromise);
     }
     async execute(args: { [key: string]: string; }): Promise<string> {
-        console.log('selectCodeTemplate', args);
         if (args.id == 'blank') {
             return this.generateFormattedResult(`template imported successfully`, `
                 We are starting from scratch. and black project
@@ -25,7 +24,6 @@ export class ProjectTemplateImportTool extends BaseTool {
         try {
             let files = await this.getGitHubRepoContent(template.githubRepo);
             let webcontainer = await this.webcontainer;
-            console.log(files);
 
             for (const file of files) {
                 let fullPath = nodePath.join(webcontainer.workdir, file.path);
@@ -101,8 +99,6 @@ export class ProjectTemplateImportTool extends BaseTool {
         }
     }
     private async getGitHubRepoContent(repoName: string, path: string = ''): Promise<{ name: string, path: string, content: string }[]> {
-
-        console.log('getGitHubRepoContent', repoName, path);
 
         const baseUrl = 'https://api.github.com';
 
