@@ -21,8 +21,8 @@ export interface ActionCallbackData {
   action: BoltAction;
 }
 
-export type ArtifactCallback = (data: ArtifactCallbackData) => void;
-export type ActionCallback = (data: ActionCallbackData) => void;
+export type ArtifactCallback = (data: ArtifactCallbackData) => Promise<void>;
+export type ActionCallback = (data: ActionCallbackData) => Promise<void>;
 
 export interface ParserCallbacks {
   onArtifactOpen?: ArtifactCallback;
@@ -57,7 +57,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) { }
 
-  parse(messageId: string, input: string) {
+  async parse(messageId: string, input: string) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -100,7 +100,7 @@ export class StreamingMessageParser {
 
             currentAction.content = content;
 
-            this._options.callbacks?.onActionClose?.({
+            await this._options.callbacks?.onActionClose?.({
               artifactId: currentArtifact.id,
               messageId,
 
@@ -122,7 +122,7 @@ export class StreamingMessageParser {
             if ('type' in currentAction && currentAction.type === 'file') {
               let content = input.slice(i);
 
-              this._options.callbacks?.onActionStream?.({
+              await this._options.callbacks?.onActionStream?.({
                 artifactId: currentArtifact.id,
                 messageId,
                 actionId: String(state.actionId - 1),
@@ -148,7 +148,7 @@ export class StreamingMessageParser {
 
               state.currentAction = this.#parseActionTag(input, actionOpenIndex, actionEndIndex);
 
-              this._options.callbacks?.onActionOpen?.({
+              await this._options.callbacks?.onActionOpen?.({
                 artifactId: currentArtifact.id,
                 messageId,
                 actionId: String(state.actionId++),
@@ -160,7 +160,7 @@ export class StreamingMessageParser {
               break;
             }
           } else if (artifactCloseIndex !== -1) {
-            this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact });
+            await this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact });
 
             state.insideArtifact = false;
             state.currentArtifact = undefined;
@@ -211,7 +211,7 @@ export class StreamingMessageParser {
 
               state.currentArtifact = currentArtifact;
 
-              this._options.callbacks?.onArtifactOpen?.({ messageId, ...currentArtifact });
+              await this._options.callbacks?.onArtifactOpen?.({ messageId, ...currentArtifact });
 
               const artifactFactory = this._options.artifactElement ?? createArtifactElement;
 

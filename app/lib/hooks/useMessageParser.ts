@@ -8,37 +8,37 @@ const logger = createScopedLogger('useMessageParser');
 
 const messageParser = new StreamingMessageParser({
   callbacks: {
-    onArtifactOpen: (data) => {
+    onArtifactOpen: async (data) => {
       logger.trace('onArtifactOpen', data);
 
       workbenchStore.showWorkbench.set(true);
-      workbenchStore.addArtifact(data);
+      await workbenchStore.addArtifact(data);
     },
-    onArtifactClose: (data) => {
+    onArtifactClose: async (data) => {
       logger.trace('onArtifactClose');
 
-      workbenchStore.updateArtifact(data, { closed: true });
+      await workbenchStore.updateArtifact(data, { closed: true });
     },
-    onActionOpen: (data) => {
+    onActionOpen: async (data) => {
       logger.trace('onActionOpen', data.action);
 
       // we only add shell actions when when the close tag got parsed because only then we have the content
       if (data.action.type !== 'shell') {
-        workbenchStore.addAction(data);
+        await workbenchStore.addAction(data);
       }
     },
-    onActionClose: (data) => {
+    onActionClose: async (data) => {
       logger.trace('onActionClose', data.action);
 
       if (data.action.type === 'shell') {
-        workbenchStore.addAction(data);
+        await workbenchStore.addAction(data);
       }
 
-      workbenchStore.runAction(data);
+      await workbenchStore.runAction(data);
     },
-    onActionStream: (data) => {
+    onActionStream: async (data) => {
       logger.trace('onActionStream', data.action);
-      workbenchStore.runAction(data, true);
+      await workbenchStore.runAction(data, true);
     },
   },
 });
@@ -46,7 +46,7 @@ const messageParser = new StreamingMessageParser({
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
-  const parseMessages = useCallback((messages: Message[], isLoading: boolean) => {
+  const parseMessages = useCallback(async (messages: Message[], isLoading: boolean) => {
     let reset = false;
 
     if (import.meta.env.DEV && !isLoading) {
@@ -56,7 +56,7 @@ export function useMessageParser() {
 
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant') {
-        const newParsedContent = messageParser.parse(message.id, message.content);
+        const newParsedContent = await messageParser.parse(message.id, message.content);
 
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
