@@ -54,22 +54,12 @@ export function streamText(
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
-
-      if (MODEL_LIST.find((m) => m.name === model)) {
-        currentModel = model;
-      }
-
+      currentModel = model;
       currentProvider = provider;
-
       return { ...message, content };
     }
-
     return message; // No changes for non-user messages
   });
-  currentModel = 'llama3.1:8b';
-  console.log('Processed messages:', processedMessages);
-  console.log('Current model:', currentModel);
-  console.log('Current provider:', currentProvider);
   return _streamText({
     model: getModel(currentProvider, currentModel, env, apiKeys),
     system: getSystemPrompt(),
