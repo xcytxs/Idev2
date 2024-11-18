@@ -262,7 +262,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           content: parsedMessages[i] || '',
         };
       })}
-      enhancePrompt={() => {
+     
         enhancePrompt={() => {
         enhancePrompt(
           input,
