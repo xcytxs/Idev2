@@ -1,5 +1,3 @@
-// @ts-nocheck
-// Preventing TS checks with files presented in the video for a better presentation.
 import { streamText as _streamText, convertToCoreMessages } from 'ai';
 import { getModel } from '~/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';

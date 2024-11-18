@@ -1,5 +1,3 @@
-// @ts-nocheck
-// Preventing TS checks with files presented in the video for a better presentation.
 import { getAPIKey, getBaseURL } from '~/lib/.server/llm/api-key';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -7,6 +5,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createMistral } from '@ai-sdk/mistral';
+import { chromium } from 'playwright';
 
 export function getAnthropicModel(apiKey: string, model: string) {
   const anthropic = createAnthropic({
@@ -99,6 +98,19 @@ export function getXAIModel(apiKey: string, model: string) {
 
   return openai(model);
 }
+
+export async function getWebBrowsingModel(query: string) {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://duckduckgo.com/');
+  await page.fill('input[name="q"]', query);
+  await page.press('input[name="q"]', 'Enter');
+  await page.waitForSelector('#links .result__a');
+  const results = await page.$$eval('#links .result__a', links => links.map(link => link.textContent));
+  await browser.close();
+  return results;
+}
+
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
   const apiKey = getAPIKey(env, provider, apiKeys);
   const baseURL = getBaseURL(env, provider);
@@ -124,6 +136,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getLMStudioModel(baseURL, model);
     case 'xAI':
       return getXAIModel(apiKey, model);
+    case 'WebBrowsing':
+      return getWebBrowsingModel;
     default:
       return getOllamaModel(baseURL, model);
   }
