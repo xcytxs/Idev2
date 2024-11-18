@@ -7,6 +7,12 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createMistral } from '@ai-sdk/mistral';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 
 export function getAnthropicModel(apiKey: string, model: string) {
   const anthropic = createAnthropic({
@@ -50,6 +56,25 @@ export function getGoogleModel(apiKey: string, model: string) {
 export function getGroqModel(apiKey: string, model: string) {
   const openai = createOpenAI({
     baseURL: 'https://api.groq.com/openai/v1',
+    apiKey,
+  });
+
+  return openai(model);
+}
+
+export function getAmazonBedrockModel(apiKey: string, model: string) {
+  const amazonBedrock = createAmazonBedrock({
+    region: process.env.AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  });
+
+  return amazonBedrock(model);
+}
+
+export function getCerebrasModel(apiKey: string, model: string) {
+  const openai = createOpenAI({
+    baseURL: 'https://api.cerebras.ai/v1',
     apiKey,
   });
 
@@ -114,6 +139,10 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getOpenRouterModel(apiKey, model);
     case 'Google':
       return getGoogleModel(apiKey, model);
+    case 'Cerebras':
+      return getCerebrasModel(apiKey, model);
+    case 'Bedrock':
+      return getAmazonBedrockModel(apiKey, model);  
     case 'OpenAILike':
       return getOpenAILikeModel(baseURL,apiKey, model);
     case 'Deepseek':
