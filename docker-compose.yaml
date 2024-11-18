@@ -22,7 +22,7 @@ services:
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
     extra_hosts:
-      - "host.docker.internal:host-gateway"      
+      - "host.docker.internal:host-gateway"
     command: pnpm run dockerstart
     profiles:
       - production  # This service only runs in the production profile
@@ -31,13 +31,14 @@ services:
     image: bolt-ai:development
     build:
       target: bolt-ai-development
+    env_file: ".env.local"
     environment:
       - NODE_ENV=development
       - VITE_HMR_PROTOCOL=ws
       - VITE_HMR_HOST=localhost
       - VITE_HMR_PORT=5173
       - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true  
+      - WATCHPACK_POLLING=true
       - PORT=5173
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -48,7 +49,7 @@ services:
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
     extra_hosts:
-      - "host.docker.internal:host-gateway"      
+      - "host.docker.internal:host-gateway"
     volumes:
       - type: bind
         source: .
