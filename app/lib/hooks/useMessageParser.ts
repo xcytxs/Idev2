@@ -3,9 +3,56 @@ import { useCallback, useState } from 'react';
 import { StreamingMessageParser } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
+import { AgentOutputParser } from '../agents/agent-output-parser';
+import { agentRegistry } from '~/utils/agentFactory';
+import type { ToolAction } from '~/types/actions';
 
 const logger = createScopedLogger('useMessageParser');
 
+const agentOutputParser = new AgentOutputParser({
+  onToolCallStart: (event) => {
+
+    logger.trace('onToolCallStart', event);
+    let artifactData = {
+      messageId: event.messageId,
+      title: `Agent: ${agentRegistry[event.agentId]?.getConfig().name}`,
+      id: event.id
+    }
+    workbenchStore.addArtifact(artifactData);
+  },
+  onToolCallComplete: (event) => {
+    logger.trace('onToolCallComplete', event);
+    let artifactData = {
+      messageId: event.messageId,
+      title: `Agent: ${agentRegistry[event.agentId]?.getConfig().name}`,
+      id: event.id
+    }
+
+    let actionData: ToolAction = {
+      type: 'tool',
+      agentId: event.agentId,
+      toolName: event.name,
+      content: JSON.stringify(event.parameters),
+      parameters: event.parameters,
+    }
+    
+    workbenchStore.addAction({
+      messageId: event.messageId,
+      actionId: event.id,
+      artifactId: event.id,
+      action: actionData
+    });
+
+    workbenchStore.runAction({
+      messageId: event.messageId,
+      actionId: event.id,
+      artifactId: event.id,
+      action: actionData
+    })
+    workbenchStore.updateArtifact(artifactData, { closed: true})
+  },
+
+});
 const messageParser = new StreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
@@ -41,7 +88,10 @@ const messageParser = new StreamingMessageParser({
       workbenchStore.runAction(data, true);
     },
   },
+  agentOutputParser
 });
+
+
 
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
@@ -52,6 +102,7 @@ export function useMessageParser() {
     if (import.meta.env.DEV && !isLoading) {
       reset = true;
       messageParser.reset();
+      agentOutputParser.reset();
     }
 
     for (const [index, message] of messages.entries()) {

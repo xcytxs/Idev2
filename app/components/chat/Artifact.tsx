@@ -32,7 +32,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
   const artifact = artifacts[messageId];
 
   const actions = useStore(
-    computed(artifact.runner.actions, (actions) => {
+    computed(artifact?.runner?.actions, (actions) => {
       return Object.values(actions);
     }),
   );
@@ -187,6 +187,10 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   >
                     <span className="flex-1">Start Application</span>
                   </a>
+                ) : type == 'tool' ? (
+                  <div className="flex items-center w-full min-h-[28px]">
+                    <span className="flex-1">{action.toolName}</span>
+                  </div>
                 ) : null}
               </div>
               {(type === 'shell' || type === 'start') && (

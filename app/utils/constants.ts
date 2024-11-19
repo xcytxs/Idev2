@@ -1,4 +1,4 @@
-import type { ModelInfo, OllamaApiResponse, OllamaModel } from './types';
+import type { ModelInfo, OllamaApiResponse, OllamaModel, TemplateInfo } from './types';
 import type { ProviderInfo } from '~/types/model';
 
 export const WORK_DIR_NAME = 'project';
@@ -128,6 +128,12 @@ const PROVIDER_LIST: ProviderInfo[] = [
     icon: "i-ph:cloud-arrow-down",
   }
 ];
+
+const codeTemplates: TemplateInfo[] = [
+  { name: 'vite-react-tailwind-ts', label: 'Vite React TS', githubRepo: 'thecodacus/vite-react-ts-template' }, 
+  { name: 'blank', label: 'Start from scratch', githubRepo: '' },
+];
+export let TEMPLATE_LIST: TemplateInfo[] = [...codeTemplates];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
 

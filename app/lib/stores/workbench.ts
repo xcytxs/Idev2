@@ -14,6 +14,7 @@ import { saveAs } from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from "@octokit/rest";
 import * as nodePath from 'node:path';
 import type { WebContainerProcess } from '@webcontainer/api';
+import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
 
 export interface ArtifactState {
   id: string;
@@ -28,11 +29,13 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 
 export type WorkbenchViewType = 'code' | 'preview';
 
+
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
+  addChatMessage?: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -41,8 +44,6 @@ export class WorkbenchStore {
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
-  #boltTerminal: { terminal: ITerminal; process: WebContainerProcess } | undefined;
-
   constructor() {
     if (import.meta.hot) {
       import.meta.hot.data.artifacts = this.artifacts;
@@ -258,7 +259,6 @@ export class WorkbenchStore {
 
   async addAction(data: ActionCallbackData) {
     const { messageId } = data;
-
     const artifact = this.#getArtifact(messageId);
 
     if (!artifact) {
@@ -276,6 +276,9 @@ export class WorkbenchStore {
     if (!artifact) {
       unreachable('Artifact not found');
     }
+    let action=artifact.runner.actions.get()[data.actionId];
+    artifact.runner.actions.setKey(data.actionId, { ...action,...data.action});
+    
     if (data.action.type === 'file') {
       let wc = await webcontainer
       const fullPath = nodePath.join(wc.workdir, data.action.filePath);
@@ -286,18 +289,40 @@ export class WorkbenchStore {
         this.currentView.set('code');
       }
       const doc = this.#editorStore.documents.get()[fullPath];
+      
       if (!doc) {
         await artifact.runner.runAction(data, isStreaming);
       }
-
+      
       this.#editorStore.updateFile(fullPath, data.action.content);
-
+      
       if (!isStreaming) {
         this.resetCurrentDocument();
-        await artifact.runner.runAction(data);
+        await artifact.runner.runAction(data)
       }
-    } else {
-      artifact.runner.runAction(data);
+    } 
+    else if (data.action.type === 'tool') {
+      await new Promise<void>((resolve=>{
+        artifact.runner.runAction(data,false,async ()=>{
+          resolve();
+        });
+      }));
+      let actionState = this.artifacts.get()[data.messageId].runner.actions.get()[data.actionId]
+      if (actionState.type !== 'tool') {
+        return;
+      }
+      if (actionState.status !== 'complete') {
+        return;
+      }
+      let result = actionState.result
+      await this.addChatMessage?.({
+        role:'user',
+        content:`Below is the result of tool execution.\n\n${JSON.stringify(result)}`, 
+        annotations:["toolResponse"]
+      }); 
+    }
+    else {
+      await artifact.runner.runAction(data);
     }
   }
 

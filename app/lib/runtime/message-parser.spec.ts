@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
+import { StreamingMessageParser, type ActionCallback, type ArtifactCallback, type ParserCallbacks } from './message-parser';
+import { AgentOutputParser } from '../agents/agent-output-parser';
 
 interface ExpectedResult {
   output: string;
@@ -154,6 +155,131 @@ describe('StreamingMessageParser', () => {
   });
 });
 
+describe('StreamingMessageParser - ToolCall Parsing', () => {
+  describe('toolCall parsing', () => {
+    it.each<[string | string[], ExpectedResult | string]>([
+      [
+        '<toolCall name="routeToAgent" agentId="coordinator">\n<parameter name="agentId">project-scaffold</parameter>\n<parameter name="query">Build a todo app</parameter>\n<parameter name="confidence">0.9</parameter>\n</toolCall>',
+        {
+          output: '',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test chunked streaming of toolCall
+      [
+        [
+          '<toolCall name="routeToAgent" ',
+          'agentId="coordinator">\n',
+          '<parameter name="agentId">project-scaffold</parameter>\n',
+          '<parameter name="query">Build a todo app</parameter>\n',
+          '<parameter name="confidence">0.9</parameter>\n',
+          '</toolCall>'
+        ],
+        {
+          output: '',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test toolCall within artifact
+      [
+        'Before <boltArtifact title="Some title" id="artifact_1"><toolCall name="routeToAgent" agentId="coordinator">\n<parameter name="agentId">project-scaffold</parameter>\n</toolCall></boltArtifact> After',
+        {
+          output: 'Before  After',
+          callbacks: { onArtifactOpen: 1, onArtifactClose: 1, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test incomplete toolCall
+      [
+        '<toolCall name="routeToAgent" agentId="coordinator">\n<parameter name="agentId">project-scaffold</parameter>',
+        {
+          output: '',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test malformed toolCall
+      [
+        '<toolCall name="routeToAgent"><parameter name="invalid">value</parameter></toolCall>',
+        {
+          output: '',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test toolCall with text before and after
+      [
+        'Some text before <toolCall name="routeToAgent" agentId="coordinator">\n<parameter name="agentId">project-scaffold</parameter>\n</toolCall> Some text after',
+        {
+          output: 'Some text before ',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+      // Test nested toolCalls (should treat as invalid)
+      [
+        '<toolCall name="outer"><toolCall name="inner"></toolCall></toolCall>',
+        {
+          output: '',
+          callbacks: { onArtifactOpen: 0, onArtifactClose: 0, onActionOpen: 0, onActionClose: 0 },
+        },
+      ],
+    ])('should correctly parse toolCall chunks (%#)', (input, outputOrExpectedResult) => {
+      let expected: ExpectedResult;
+      if (typeof outputOrExpectedResult === 'string') {
+        expected = { output: outputOrExpectedResult };
+      } else {
+        expected = outputOrExpectedResult;
+      }
+      const mockAgentOutputParser = {
+        getToolCallTagOpen: () => '<toolCall',
+        parse: vi.fn().mockImplementation((messageId, input) => {
+          if (input.includes('</toolCall>')) {
+            return {
+              cursor: { position: input.indexOf('</toolCall>') + '</toolCall>'.length },
+              event: { type: 'toolCallComplete' }
+            };
+          }
+          return { cursor: { position: 0 }, event: null };
+        })
+      };
+
+      const parser = new StreamingMessageParser({
+        artifactElement: () => '',
+        callbacks: {
+          onArtifactOpen: vi.fn(),
+          onArtifactClose: vi.fn(),
+          onActionOpen: vi.fn(),
+          onActionClose: vi.fn(),
+        },
+        agentOutputParser: mockAgentOutputParser as unknown as AgentOutputParser
+      });
+
+      let message = '';
+      let result = '';
+      const chunks = Array.isArray(input) ? input : [input];
+
+      for (const chunk of chunks) {
+        message += chunk;
+        result += parser.parse('message_1', message);
+      }
+
+      expect(result).toEqual(expected.output);
+
+      // Verify callbacks were called correct number of times
+      if (expected.callbacks) {
+        for (const [name, count] of Object.entries(expected.callbacks)) {
+          type CallbackName = keyof ParserCallbacks;
+          if (name === 'onArtifactOpen' || name === 'onArtifactClose' ||
+            name === 'onActionOpen' || name === 'onActionStream' || name === 'onActionClose') {
+            const callbacks=parser['_options'].callbacks
+            const callback = callbacks?.[name as CallbackName];
+            if (callback && typeof callback === 'function') {
+              expect(callback).toHaveBeenCalledTimes(count);
+            }
+          }
+        }
+      }
+    });
+  });
+});
+
 function runTest(input: string | string[], outputOrExpectedResult: string | ExpectedResult) {
   let expected: ExpectedResult;
 
@@ -181,6 +307,7 @@ function runTest(input: string | string[], outputOrExpectedResult: string | Expe
   const parser = new StreamingMessageParser({
     artifactElement: () => '',
     callbacks,
+    agentOutputParser: new AgentOutputParser()
   });
 
   let message = '';

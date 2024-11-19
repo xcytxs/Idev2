@@ -30,8 +30,9 @@ function parseCookies(cookieHeader) {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{
-    messages: Messages
+  const { messages,toolConfig } = await request.json<{
+    messages: Messages,
+    toolConfig:any
   }>();
 
   const cookieHeader = request.headers.get("Cookie");
@@ -43,7 +44,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const options: StreamingOptions = {
-      toolChoice: 'none',
       apiKeys,
       onFinish: async ({ text: content, finishReason }) => {
         if (finishReason !== 'length') {
@@ -67,7 +67,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
     };
 
-    const result = await streamText(messages, context.cloudflare.env, options, apiKeys);
+    const result = await streamText(messages, context.cloudflare.env, options, apiKeys,toolConfig);
 
     stream.switchSource(result.toAIStream());
 
