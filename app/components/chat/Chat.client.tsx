@@ -231,7 +231,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const handleProviderChange = (newProvider: ProviderInfo) => {
     setProvider(newProvider);
-    Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
+    Cookies.set('selectedProvider', newProvider, { expires: 30 });
   };
 
   return (
