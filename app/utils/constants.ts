@@ -6,7 +6,10 @@ export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
-export const DEFAULT_MODEL = 'claude-3-5-sonnet-latest';
+// export const DEFAULT_MODEL = 'claude-3-5-sonnet-latest';
+export const DEFAULT_MODEL = 'us.anthropic.claude-3-5-haiku-20241022-v1:0';
+export const DEFAULT_PROVIDER = 'AmazonBedrock';
+
 
 const PROVIDER_LIST: ProviderInfo[] = [
   {
@@ -130,10 +133,21 @@ const PROVIDER_LIST: ProviderInfo[] = [
     getApiKeyLink: 'https://lmstudio.ai/',
     labelForGetApiKey: 'Get LMStudio',
     icon: "i-ph:cloud-arrow-down",
-  }
+  },
+  {
+    name: 'AmazonBedrock',
+    staticModels: [
+      { name: 'us.meta.llama3-2-90b-instruct-v1:0', label: 'Llama 3.2 90b AWS', provider: 'AmazonBedrock' },
+      { name: 'us.meta.llama3-2-11b-instruct-v1:0', label: 'Llama 3.2 11b AWS', provider: 'AmazonBedrock' },
+      { name: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', label: 'Claude 3.5 Sonnet v2', provider: 'AmazonBedrock' },
+      { name: 'anthropic.claude-3-5-sonnet-20240620-v1:0', label: 'Claude 3.5 Sonnet v1', provider: 'AmazonBedrock' },
+      { name: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', label: 'Claude 3.5 Haiku', provider: 'AmazonBedrock' },
+    ],
+    getApiKeyLink: 'https://aws.amazon.com/bedrock/',
+  },
 ];
 
-export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
+// export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
 
 const staticModels: ModelInfo[] = PROVIDER_LIST.map(p => p.staticModels).flat();
 

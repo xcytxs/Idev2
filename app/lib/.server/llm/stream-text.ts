@@ -67,10 +67,11 @@ export function streamText(
     return message; // No changes for non-user messages
   });
 
+  const maxTokens = currentProvider === 'AmazonBedrock' ? 4096 : MAX_TOKENS;
   return _streamText({
     model: getModel(currentProvider, currentModel, env, apiKeys),
     system: getSystemPrompt(),
-    maxTokens: MAX_TOKENS,
+    maxTokens: maxTokens,
     messages: convertToCoreMessages(processedMessages),
     ...options,
   });

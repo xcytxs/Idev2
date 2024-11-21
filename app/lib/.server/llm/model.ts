@@ -1,12 +1,25 @@
 // @ts-nocheck
 // Preventing TS checks with files presented in the video for a better presentation.
-import { getAPIKey, getBaseURL } from '~/lib/.server/llm/api-key';
+import { getAPIKey, getBaseURL,getAmazonBedrockCredentials } from '~/lib/.server/llm/api-key';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createMistral } from '@ai-sdk/mistral';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+
+
+export function getBedrockModel(region: string, accessKeyId: string, secretAccessKey: string, model: string) {
+  
+  const bedrock = createAmazonBedrock({
+    region,
+    accessKeyId,
+    secretAccessKey,
+  });
+
+  return bedrock(model);
+}
 
 export function getAnthropicModel(apiKey: string, model: string) {
   const anthropic = createAnthropic({
@@ -111,6 +124,7 @@ export function getXAIModel(apiKey: string, model: string) {
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
   const apiKey = getAPIKey(env, provider, apiKeys);
   const baseURL = getBaseURL(env, provider);
+  const amazonBedrockCredentials = getAmazonBedrockCredentials(env);
 
   switch (provider) {
     case 'Anthropic':
@@ -135,6 +149,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getLMStudioModel(baseURL, model);
     case 'xAI':
       return getXAIModel(apiKey, model);
+      case 'AmazonBedrock':
+        return getBedrockModel(amazonBedrockCredentials.region, amazonBedrockCredentials.accessKeyId, amazonBedrockCredentials.secretAccessKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }
