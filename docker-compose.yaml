@@ -27,7 +27,8 @@ services:
       - AMAZON_BEDROCK_SECRET_ACCESS_KEY=${AMAZON_BEDROCK_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"      
-    command: pnpm run dockerstart
+    # command: pnpm run dockerstart
+    command: pnpm run dockerstartcool
     profiles:
       - production  # This service only runs in the production profile
 
