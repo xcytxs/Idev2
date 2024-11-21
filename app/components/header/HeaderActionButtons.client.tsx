@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 
 interface HeaderActionButtonsProps {}
@@ -10,13 +10,102 @@ interface HeaderActionButtonsProps {}
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const { showChat } = useStore(chatStore);
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canHideChat = showWorkbench || !showChat;
 
-  const handleSyncFiles = () => {
-    setShowComingSoon(true);
-    setTimeout(() => setShowComingSoon(false), 2000);
+  const handleSyncFiles = async () => {
+    setIsSyncing(true);
+    try {
+      // Créer un input file pour sélectionner un fichier
+      const input = document.createElement('input');
+      input.type = 'file';
+      // Définir les types de fichiers acceptés
+      input.accept = '.js,.jsx,.ts,.tsx,.css,.scss,.html,.json,.md,.txt';
+      // Désactiver la sélection multiple
+      input.multiple = false;
+      input.webkitdirectory = false;
+      input.directory = false;
+
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          setIsSyncing(false);
+          return;
+        }
+
+        // Vérifier si c'est un dossier (au cas où)
+        if (file.size === 0 && file.type === "") {
+          toast.error('Folders are not supported, please select a single file');
+          setIsSyncing(false);
+          return;
+        }
+
+        // Vérifier la taille du fichier (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`File "${file.name}" is too large (max 5MB)`);
+          setIsSyncing(false);
+          return;
+        }
+
+        try {
+          console.log('Reading file:', file.name, 'Type:', file.type);
+          const content = await file.text();
+          
+          // Vérifier si le contenu est lisible
+          if (!content) {
+            toast.error(`File "${file.name}" appears to be empty`);
+            setIsSyncing(false);
+            return;
+          }
+
+          // Vérifier l'extension du fichier
+          const fileExtension = file.name.split('.').pop()?.toLowerCase();
+          if (!fileExtension) {
+            toast.error(`File "${file.name}" has no extension`);
+            setIsSyncing(false);
+            return;
+          }
+
+          const allowedExtensions = ['js', 'jsx', 'ts', 'tsx', 'css', 'scss', 'html', 'json', 'md', 'txt'];
+          if (!allowedExtensions.includes(fileExtension)) {
+            toast.error(`File type ".${fileExtension}" is not supported. Allowed types: ${allowedExtensions.join(', ')}`);
+            setIsSyncing(false);
+            return;
+          }
+
+          await workbenchStore.addFile({
+            name: file.name,
+            content,
+            path: file.name
+          });
+
+          toast.success(`File "${file.name}" imported successfully`);
+        } catch (error) {
+          console.error('Error details:', {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            error
+          });
+          
+          if (error instanceof Error) {
+            toast.error(`Failed to read "${file.name}": ${error.message}`);
+          } else {
+            toast.error(`Failed to read "${file.name}". Please try another file.`);
+          }
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+
+      input.click();
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('Failed to start import process');
+      setIsSyncing(false);
+    }
   };
 
   const handlePushToGitHub = async () => {
@@ -80,27 +169,19 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           <span className="ml-2">Download</span>
         </Button>
         <div className="w-[1px] bg-bolt-elements-borderColor" />
-        <div className="relative group">
-          <Button
-            className="bg-[#FFA50015] hover:bg-[#FFA50030] relative overflow-hidden"
-          >
-            <div className="flex items-center">
-              <div className="i-ph:cloud-arrow-down text-[#FFA500]" />
-              <span className="ml-2">Import</span>
-              <span className="ml-2 text-[10px] text-[#FFA500] opacity-60">
-                Coming Soon ✨
-              </span>
-            </div>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100">
-              <div 
-                className="absolute h-full w-[30px] bg-gradient-to-r from-transparent via-[#FFA50040] to-transparent -skew-x-12 group-hover:translate-x-[150px] transition-none group-hover:transition-transform group-hover:duration-[1500ms] group-hover:ease-in-out animate-shimmer"
-                style={{ 
-                  left: '-30px',
-                }}
-              />
-            </div>
-          </Button>
-        </div>
+        <Button
+          onClick={handleSyncFiles}
+          disabled={isSyncing}
+          className="bg-[#FFA50015] hover:bg-[#FFA50030] relative overflow-hidden"
+        >
+          <div className="flex items-center">
+            <div className={classNames(
+              "transition-all duration-200",
+              isSyncing ? "animate-spin i-ph:spinner" : "i-ph:cloud-arrow-down"
+            )} />
+            <span className="ml-2">{isSyncing ? 'Importing...' : 'Import'}</span>
+          </div>
+        </Button>
         <div className="w-[1px] bg-bolt-elements-borderColor" />
         <Button
           onClick={handlePushToGitHub}
