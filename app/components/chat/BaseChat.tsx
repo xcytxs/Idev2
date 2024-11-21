@@ -1,5 +1,7 @@
-// @ts-nocheck
-// Preventing TS checks with files presented in the video for a better presentation.
+/**
+ * @ts-nocheck
+ * Preventing TS checks with files presented in the video for a better presentation.
+ */
 import type { Message } from 'ai';
 import React, { type RefCallback, useEffect } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -7,11 +9,11 @@ import { Menu } from '~/components/sidebar/Menu.client';
 import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
-import { MODEL_LIST, DEFAULT_PROVIDER, PROVIDER_LIST, initializeModelList } from '~/utils/constants';
+import { MODEL_LIST, PROVIDER_LIST, initializeModelList } from '~/utils/constants';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
 import { useState } from 'react';
-import { APIKeyManager } from './APIKeyManager';
+import { ApiKeyManager } from './APIKeyManager';
 import Cookies from 'js-cookie';
 
 import styles from './BaseChat.module.scss';
@@ -25,21 +27,29 @@ const EXAMPLE_PROMPTS = [
   { text: 'How do I center a div?' },
 ];
 
-const providerList = PROVIDER_LIST;
+interface ModelSelectorProps {
+  model: string;
+  setModel: (model: string) => void;
+  provider: ProviderInfo | undefined;
+  setProvider: (provider: ProviderInfo | undefined) => void;
+  modelList: Array<{ provider: string; name: string; label: string }>;
+  providerList: ProviderInfo[];
+}
 
-const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList }) => {
+const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList }: ModelSelectorProps) => {
   return (
     <div className="mb-2 flex gap-2">
       <select
         value={provider?.name}
         onChange={(e) => {
-          setProvider(providerList.find((p) => p.name === e.target.value));
+          setProvider(providerList.find((p: ProviderInfo) => p.name === e.target.value));
+
           const firstModel = [...modelList].find((m) => m.provider == e.target.value);
           setModel(firstModel ? firstModel.name : '');
         }}
         className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
       >
-        {providerList.map((provider) => (
+        {providerList.map((provider: ProviderInfo) => (
           <option key={provider.name} value={provider.name}>
             {provider.name}
           </option>
@@ -80,7 +90,7 @@ interface BaseChatProps {
   model?: string;
   setModel?: (model: string) => void;
   provider?: ProviderInfo;
-  setProvider?: (provider: ProviderInfo) => void;
+  setProvider?: (provider: ProviderInfo | undefined) => void;
   handleStop?: () => void;
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -116,18 +126,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [modelList, setModelList] = useState(MODEL_LIST);
 
     useEffect(() => {
-      // Load API keys from cookies on component mount
+      // load API keys from cookies on component mount
       try {
         const storedApiKeys = Cookies.get('apiKeys');
+
         if (storedApiKeys) {
           const parsedKeys = JSON.parse(storedApiKeys);
+
           if (typeof parsedKeys === 'object' && parsedKeys !== null) {
             setApiKeys(parsedKeys);
           }
         }
       } catch (error) {
         console.error('Error loading API keys from cookies:', error);
-        // Clear invalid cookie data
+
+        // clear invalid cookie data
         Cookies.remove('apiKeys');
       }
 
@@ -140,12 +153,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       try {
         const updatedApiKeys = { ...apiKeys, [provider]: key };
         setApiKeys(updatedApiKeys);
-        // Save updated API keys to cookies with 30 day expiry and secure settings
+
+        // save updated API keys to cookies with 30 day expiry and secure settings
         Cookies.set('apiKeys', JSON.stringify(updatedApiKeys), {
           expires: 30, // 30 days
-          secure: true, // Only send over HTTPS
-          sameSite: 'strict', // Protect against CSRF
-          path: '/', // Accessible across the site
+          secure: true, // only send over HTTPS
+          sameSite: 'strict', // protect against CSRF
+          path: '/', // accessible across the site
         });
       } catch (error) {
         console.error('Error saving API keys to cookies:', error);
@@ -195,20 +209,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className={classNames(
                   'bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
                   {
-                    'sticky bottom-0': chatStarted
-                  })}
+                    'sticky bottom-0': chatStarted,
+                  },
+                )}
               >
                 <ModelSelector
                   key={provider?.name + ':' + modelList.length}
-                  model={model}
-                  setModel={setModel}
+                  model={model!}
+                  setModel={setModel!}
                   modelList={modelList}
                   provider={provider}
-                  setProvider={setProvider}
+                  setProvider={setProvider!}
                   providerList={PROVIDER_LIST}
                 />
                 {provider && (
-                  <APIKeyManager
+                  <ApiKeyManager
                     provider={provider}
                     apiKey={apiKeys[provider.name] || ''}
                     setApiKey={(key) => updateApiKey(provider.name, key)}
