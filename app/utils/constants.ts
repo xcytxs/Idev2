@@ -147,7 +147,15 @@ const PROVIDER_LIST: ProviderInfo[] = [
     getApiKeyLink: 'https://lmstudio.ai/',
     labelForGetApiKey: 'Get LMStudio',
     icon: "i-ph:cloud-arrow-down",
-  }
+  },
+  {
+    name: 'NovitaAI',
+    staticModels: [
+      { name: 'qwen/qwen-2.5-72b-instruct', label: 'qwen-2.5-72b-instruct', provider: 'NovitaAI', maxTokenAllowed: 16000 },
+      { name: 'meta-llama/llama-3.1-405b-instruct', label: 'llama-3.1-405b-instruct', provider: 'NovitaAI', maxTokenAllowed: 16384 }
+    ],
+    getApiKeyLink: 'https://novita.ai/settings/api-keys'
+  },
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];

@@ -119,6 +119,15 @@ export function getXAIModel(apiKey: string, model: string) {
   return openai(model);
 }
 
+export function getNovitaModel(apiKey: string, model: string) {
+  const novita = createOpenAI({
+    baseURL: 'https://api.novita.ai/v3/openai',
+    apiKey,
+  });
+
+  return novita(model);
+}
+
 
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
   const apiKey = getAPIKey(env, provider, apiKeys);
@@ -149,6 +158,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getXAIModel(apiKey, model);
     case 'Cohere':
       return getCohereAIModel(apiKey, model);
+    case 'NovitaAI':
+      return getNovitaModel(apiKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }
