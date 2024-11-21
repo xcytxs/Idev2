@@ -35,7 +35,8 @@ https://thinktank.ottomator.ai
 - ⬜ **HIGH PRIORITY** - Attach images to prompts
 - ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
 - ⬜ Mobile friendly
-- ⬜ Together Integration
+- ✅ Together Integration
+- ✅ Novita AI integration
 - ⬜ Azure Open AI API Integration
 - ⬜ Perplexity Integration
 - ⬜ Vertex AI Integration
