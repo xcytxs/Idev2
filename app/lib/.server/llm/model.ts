@@ -128,6 +128,16 @@ export function getNovitaModel(apiKey: string, model: string) {
   return novita(model);
 }
 
+export function getTogetherAIModel(apiKey: string, model: string) {
+
+  const together = createOpenAI({
+    baseURL: 'https://api.together.xyz/v1',
+    apiKey,
+  });
+
+  return together(model);
+}
+
 
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
   const apiKey = getAPIKey(env, provider, apiKeys);
@@ -160,6 +170,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getCohereAIModel(apiKey, model);
     case 'NovitaAI':
       return getNovitaModel(apiKey, model);
+      case 'TogetherAI':
+      return getTogetherAIModel(apiKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }

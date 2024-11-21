@@ -156,6 +156,13 @@ const PROVIDER_LIST: ProviderInfo[] = [
     ],
     getApiKeyLink: 'https://novita.ai/settings/api-keys'
   },
+  {
+    name: 'TogetherAI',
+    staticModels: [
+      { name: 'Qwen/Qwen2.5-72B-Instruct-Turbo', label: 'Qwen2.5-72B-Instruct-Turbo', provider: 'TogetherAI', maxTokenAllowed: 1000 },
+      { name: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', label: 'Llama 3.1 8B Instruct Turbo', provider: 'TogetherAI', maxTokenAllowed: 1000 },
+    ],
+  },
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
