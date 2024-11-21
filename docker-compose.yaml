@@ -7,7 +7,7 @@ services:
       target: bolt-ai-production
     ports:
       - "5173:5173"
-    env_file: ".env.local"
+    # env_file: ".env.local"
     environment:
       - NODE_ENV=production
       - COMPOSE_PROFILES=production
@@ -22,6 +22,9 @@ services:
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
+      - AMAZON_BEDROCK_REGION=${AMAZON_BEDROCK_REGION}
+      - AMAZON_BEDROCK_ACCESS_KEY_ID=${AMAZON_BEDROCK_ACCESS_KEY_ID}
+      - AMAZON_BEDROCK_SECRET_ACCESS_KEY=${AMAZON_BEDROCK_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"      
     command: pnpm run dockerstart
@@ -49,6 +52,9 @@ services:
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-debug}
       - RUNNING_IN_DOCKER=true
+      - AMAZON_BEDROCK_REGION=${AMAZON_BEDROCK_REGION}
+      - AMAZON_BEDROCK_ACCESS_KEY_ID=${AMAZON_BEDROCK_ACCESS_KEY_ID}
+      - AMAZON_BEDROCK_SECRET_ACCESS_KEY=${AMAZON_BEDROCK_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"      
     volumes:
