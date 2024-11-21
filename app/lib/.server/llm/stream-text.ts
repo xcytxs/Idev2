@@ -2,17 +2,25 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import { streamText as _streamText, convertToCoreMessages } from 'ai';
+import { streamText as _streamText, convertToCoreMessages, type LanguageModelV1 } from 'ai';
 import { getModel } from '~/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
-import { MODEL_LIST, DEFAULT_MODEL, DEFAULT_PROVIDER, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
+import {
+  MODEL_LIST,
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
+  MODEL_REGEX,
+  PROVIDER_REGEX,
+  PROVIDER_LIST,
+} from '~/utils/constants';
 
 interface ToolResult<Name extends string, Args, Result> {
   toolCallId: string;
   toolName: Name;
   args: Args;
   result: Result;
+  state: 'result';
 }
 
 interface Message {
@@ -20,6 +28,22 @@ interface Message {
   content: string;
   toolInvocations?: ToolResult<string, unknown, unknown>[];
   model?: string;
+}
+
+// add this adapter function
+function adaptModelToLanguageModelV1(model: any): LanguageModelV1 {
+  return {
+    specificationVersion: 'v1',
+    provider: 'unknown',
+    modelId: model.modelId ?? 'unknown',
+    defaultObjectGenerationMode: 'json',
+    doGenerate: async (options) => {
+      return model.doGenerate(options);
+    },
+    doStream: async (options) => {
+      return model.doStream(options);
+    },
+  };
 }
 
 export type Messages = Message[];
@@ -40,7 +64,7 @@ function extractPropertiesFromMessage(message: Message): { model: string; provid
   // remove model and provider lines from content
   const cleanedContent = message.content.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '').trim();
 
-  return { model, provider, content: cleanedContent };
+  return { model, provider: provider as string, content: cleanedContent };
 }
 
 export function streamText(messages: Messages, env: Env, options?: StreamingOptions, apiKeys?: Record<string, string>) {
@@ -49,13 +73,13 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
 
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
-      const { model, provider, content } = extractPropertiesFromMessage(message);
+      const { model, provider: providerName, content } = extractPropertiesFromMessage(message);
 
       if (MODEL_LIST.find((m) => m.name === model)) {
         currentModel = model;
       }
 
-      currentProvider = provider;
+      currentProvider = PROVIDER_LIST.find((p) => p.name === providerName) ?? DEFAULT_PROVIDER;
 
       return { ...message, content };
     }
@@ -68,7 +92,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamingOpti
   const dynamicMaxTokens = modelDetails && modelDetails.maxTokenAllowed ? modelDetails.maxTokenAllowed : MAX_TOKENS;
 
   return _streamText({
-    model: getModel(currentProvider, currentModel, env, apiKeys),
+    model: adaptModelToLanguageModelV1(getModel(currentProvider.name, currentModel, env, apiKeys)),
     system: getSystemPrompt(),
     maxTokens: dynamicMaxTokens,
     messages: convertToCoreMessages(processedMessages),

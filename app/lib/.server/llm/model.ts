@@ -82,7 +82,7 @@ export function getOllamaModel(baseURL: string, model: string) {
     numCtx: 32768,
   });
 
-  ollamaInstance.config.baseURL = `${baseURL}/api`;
+  // ollamaInstance.config.baseURL = `${baseURL}/api`;
 
   return ollamaInstance;
 }
@@ -128,40 +128,40 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
 
   switch (provider) {
     case 'Anthropic': {
-      return getAnthropicModel(apiKey, model);
+      return getAnthropicModel(apiKey!, model);
     }
     case 'OpenAI': {
-      return getOpenAIModel(apiKey, model);
+      return getOpenAIModel(apiKey!, model);
     }
     case 'Groq': {
-      return getGroqModel(apiKey, model);
+      return getGroqModel(apiKey!, model);
     }
     case 'HuggingFace': {
-      return getHuggingFaceModel(apiKey, model);
+      return getHuggingFaceModel(apiKey!, model);
     }
     case 'OpenRouter': {
-      return getOpenRouterModel(apiKey, model);
+      return getOpenRouterModel(apiKey!, model);
     }
     case 'Google': {
-      return getGoogleModel(apiKey, model);
+      return getGoogleModel(apiKey!, model);
     }
     case 'OpenAILike': {
-      return getOpenAILikeModel(baseURL, apiKey, model);
+      return getOpenAILikeModel(baseURL, apiKey!, model);
     }
     case 'Deepseek': {
-      return getDeepseekModel(apiKey, model);
+      return getDeepseekModel(apiKey!, model);
     }
     case 'Mistral': {
-      return getMistralModel(apiKey, model);
+      return getMistralModel(apiKey!, model);
     }
     case 'LMStudio': {
       return getLMStudioModel(baseURL, model);
     }
     case 'xAI': {
-      return getXAIModel(apiKey, model);
+      return getXAIModel(apiKey!, model);
     }
     case 'Cohere': {
-      return getCohereAIModel(apiKey, model);
+      return getCohereAIModel(apiKey!, model);
     }
     default: {
       return getOllamaModel(baseURL, model);
