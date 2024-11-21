@@ -69,7 +69,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                     {isUserMessage ? <UserMessage content={content} /> : <AssistantMessage content={content} />}
                   </div>
                   {!isUserMessage && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-col lg:flex-row">
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           {messageId && (
