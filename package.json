@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.39",
+    "@ai-sdk/azure": "^1.0.5",
     "@ai-sdk/cohere": "^1.0.1",
     "@ai-sdk/google": "^0.0.52",
     "@ai-sdk/mistral": "^0.0.43",
@@ -66,6 +67,7 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "ai": "^3.4.9",
+    "axios": "^1.7.7",
     "date-fns": "^3.6.0",
     "diff": "^5.2.0",
     "file-saver": "^2.0.5",
@@ -89,6 +91,7 @@
     "remix-island": "^0.2.0",
     "remix-utils": "^7.6.0",
     "shiki": "^1.9.1",
+    "together-ai": "^0.9.0",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
