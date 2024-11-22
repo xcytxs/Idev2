@@ -37,7 +37,7 @@ https://thinktank.ottomator.ai
 - ⬜ Mobile friendly
 - ✅ Together Integration
 - ✅ Novita AI integration
-- ⬜ Azure Open AI API Integration
+- ✅ Azure Open AI API Integration
 - ⬜ Perplexity Integration
 - ⬜ Vertex AI Integration
 - ✅ Cohere Integration (@hasanraiyan)
