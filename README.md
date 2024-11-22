@@ -1,6 +1,6 @@
-[![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
+[![oTToDev: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://thinktank.ottomator.ai)
 
-# Bolt.new Fork by Cole Medin - oTToDev
+# oTToDev: AI-Powered Full-Stack Web Development in the Browser
 
 This fork of Bolt.new (oTToDev) allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
@@ -29,6 +29,8 @@ https://thinktank.ottomator.ai
 - ✅ Bolt terminal to see the output of LLM run commands (@thecodacus)
 - ✅ Streaming of code output (@thecodacus)
 - ✅ Ability to revert code to earlier version (@wonderwhy-er)
+- ✅ Cohere Integration (@hasanraiyan)
+- ✅ Dynamic model max token length (@hasanraiyan)
 - ⬜ **HIGH PRIORITY** - Prevent Bolt from rewriting files as often (file locking and diffs)
 - ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
 - ⬜ **HIGH PRIORITY** - Load local projects into the app
@@ -39,8 +41,6 @@ https://thinktank.ottomator.ai
 - ⬜ Azure Open AI API Integration
 - ⬜ Perplexity Integration
 - ⬜ Vertex AI Integration
-- ✅ Cohere Integration (@hasanraiyan)
-- ✅ Dynamic model max token length (@hasanraiyan)
 - ⬜ Deploy directly to Vercel/Netlify/other similar platforms
 - ⬜ Prompt caching
 - ⬜ Better prompt enhancing
@@ -49,26 +49,19 @@ https://thinktank.ottomator.ai
 - ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
 - ⬜ Voice prompting
 
-# Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 
-Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
+## Why did we fork Bolt.new
 
-## What Makes Bolt.new Different
+Claude, v0, etc are incredible- but you can't install packages, run backends, or edit code. That’s where Bolt.new stood out:
 
-Claude, v0, etc are incredible- but you can't install packages, run backends, or edit code. That’s where Bolt.new stands out:
-
-- **Full-Stack in the Browser**: Bolt.new integrates cutting-edge AI models with an in-browser development environment powered by **StackBlitz’s WebContainers**. This allows you to:
+- **Full-Stack in the Browser**: integrates cutting-edge AI models with an in-browser development environment powered by **StackBlitz’s WebContainers**. This allows you to:
   - Install and run npm tools and libraries (like Vite, Next.js, and more)
   - Run Node.js servers
   - Interact with third-party APIs
   - Deploy to production from chat
   - Share your work via a URL
 
-- **AI with Environment Control**: Unlike traditional dev environments where the AI can only assist in code generation, Bolt.new gives AI models **complete control** over the entire  environment including the filesystem, node server, package manager, terminal, and browser console. This empowers AI agents to handle the whole app lifecycle—from creation to deployment.
-
-Whether you’re an experienced developer, a PM, or a designer, Bolt.new allows you to easily build production-grade full-stack applications.
-
-For developers interested in building their own AI-powered development tools with WebContainers, check out the open-source Bolt codebase in this repo!
+- **AI with Environment Control**: Unlike traditional dev environments where the AI can only assist in code generation, gives AI models **complete control** over the entire  environment including the filesystem, node server, package manager, terminal, and browser console. This empowers AI agents to handle the whole app lifecycle—from creation to deployment.
 
 ## Setup
 
@@ -192,31 +185,6 @@ sudo npm install -g pnpm
 pnpm run dev
 ```
 
-## Super Important Note on Running Ollama Models
-
-Ollama models by default only have 2048 tokens for their context window. Even for large models that can easily handle way more.
-This is not a large enough window to handle the Bolt.new/oTToDev prompt! You have to create a version of any model you want
-to use where you specify a larger context window. Luckily it's super easy to do that.
-
-All you have to do is:
-
-- Create a file called "Modelfile" (no file extension) anywhere on your computer
-- Put in the two lines:
-
-```
-FROM [Ollama model ID such as qwen2.5-coder:7b]
-PARAMETER num_ctx 32768
-```
-
-- Run the command: 
-
-```
-ollama create -f Modelfile [your new model ID, can be whatever you want (example: qwen2.5-coder-extra-ctx:7b)]
-```
-
-Now you have a new Ollama model that isn't heavily limited in the context length like Ollama models are by default for some reason.
-You'll see this new model in the list of Ollama models along with all the others you pulled!
-
 ## Adding New LLMs:
 
 To make new LLMs available to use in this version of Bolt.new, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider. 
@@ -246,14 +214,18 @@ pnpm run dev
 
 This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
+## Road Map
+
+Here is a road map that will bne kept upto date - https://roadmap.sh/r/ottodev-roadmap-2ovzo
+
 ## Tips and Tricks
 
-Here are some tips to get the most out of Bolt.new:
+Here are some tips to get the most out of oTToDev:
 
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
+- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure oTToDev scaffolds the project accordingly.
 
 - **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
 
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
+- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps oTToDev understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
 
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
+- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
