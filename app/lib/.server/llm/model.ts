@@ -10,7 +10,8 @@ import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
-import { createAzure } from '@ai-sdk/azure'
+import { createAzure } from '@ai-sdk/azure';
+import type { LanguageModelV1 } from 'ai';
 
 export const DEFAULT_NUM_CTX = process.env.DEFAULT_NUM_CTX ? parseInt(process.env.DEFAULT_NUM_CTX, 10) : 32768;
 
