@@ -4,11 +4,11 @@
 
 This fork of Bolt.new (oTToDev) allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
-Join the community for oTToDev!
+# Join the community for oTToDev!
 
-https://thinktank.ottomator.ai
+Follow this link to join the ottoDev community - https://thinktank.ottomator.ai
 
-# Requested Additions to this Fork - Feel Free to Contribute!!
+# Requested Additions - Feel Free to Contribute!
 
 - ✅ OpenRouter Integration (@coleam00)
 - ✅ Gemini Integration (@jonathands)
@@ -216,7 +216,9 @@ This will start the Remix Vite development server. You will need Google Chrome C
 
 ## Road Map
 
-Here is a road map that will bne kept upto date - https://roadmap.sh/r/ottodev-roadmap-2ovzo
+[![oTToDev: Roadmap](./public/roadmap.png)](https://roadmap.sh/r/ottodev-roadmap-2ovzo)
+
+Here is a road map that will be kept upto date - https://roadmap.sh/r/ottodev-roadmap-2ovzo
 
 ## Tips and Tricks
 
