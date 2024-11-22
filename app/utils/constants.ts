@@ -163,6 +163,12 @@ const PROVIDER_LIST: ProviderInfo[] = [
       { name: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', label: 'Llama 3.1 8B Instruct Turbo', provider: 'TogetherAI', maxTokenAllowed: 1000 },
     ],
   },
+  {
+    name: 'Azure',
+    staticModels: [
+      { name: 'gpt-4o', label: 'gpt-4o (resource:key)', provider: 'Azure', maxTokenAllowed: 1000 }
+    ],
+  }
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];

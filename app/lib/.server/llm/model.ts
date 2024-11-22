@@ -8,6 +8,7 @@ import { ollama } from 'ollama-ai-provider';
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere'
+import { createAzure } from '@ai-sdk/azure'
 
 export const DEFAULT_NUM_CTX = process.env.DEFAULT_NUM_CTX ? 
   parseInt(process.env.DEFAULT_NUM_CTX, 10) : 
@@ -138,8 +139,19 @@ export function getTogetherAIModel(apiKey: string, model: string) {
     baseURL: 'https://api.together.xyz/v1',
     apiKey,
   });
-
   return together(model);
+}
+
+export function getAzureAIModel(resourcekey: string, model: string){
+  if(resourcekey.split(":").length != 2)
+  {
+    console.error("azure requires resouce name and api key");
+  }
+  const azmodel = createAzure({
+    resourceName: resourcekey.split(':')[0],
+    apiKey: resourcekey.split(':')[1],
+  });
+  return azmodel(model);
 }
 
 
@@ -174,8 +186,10 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getCohereAIModel(apiKey, model);
     case 'NovitaAI':
       return getNovitaModel(apiKey, model);
-      case 'TogetherAI':
+    case 'TogetherAI':
       return getTogetherAIModel(apiKey, model);
+    case 'Azure':
+      return getAzureAIModel(apiKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }
