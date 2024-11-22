@@ -156,8 +156,12 @@ const PROVIDER_LIST: ProviderInfo[] = [
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
 
 const staticModels: ModelInfo[] = PROVIDER_LIST.map(p => p.staticModels).flat();
+const dynamiModels: ModelInfo[] = await Promise.all(PROVIDER_LIST
+  .filter((p): p is ProviderInfo & { getDynamicModels: () => Promise<ModelInfo[]> } => !!p.getDynamicModels)
+  .map(p => p.getDynamicModels())
+).then(models => models.flat());
 
-export let MODEL_LIST: ModelInfo[] = [...staticModels];
+export let MODEL_LIST: ModelInfo[] = [...staticModels, ...dynamiModels];
 
 const getOllamaBaseUrl = () => {
   const defaultBaseUrl = import.meta.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
