@@ -47,14 +47,15 @@ export function Chat() {
            */
           switch (type) {
             case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+                return <div className="i-ph:check-circle-bold text-bolt-elements-icon-success text-2xl" />;
             }
             case 'error': {
               return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
             }
+            default: {
+              return <div className="i-ph:info-circle-bold text-bolt-elements-icon-info text-2xl" />;
+            }
           }
-
-          return undefined;
         }}
         position="bottom-right"
         pauseOnFocusLoss
@@ -230,7 +231,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const handleProviderChange = (newProvider: ProviderInfo) => {
     setProvider(newProvider);
-    Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
+    Cookies.set('selectedProvider', newProvider, { expires: 30 });
   };
 
   return (
@@ -262,15 +263,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           content: parsedMessages[i] || '',
         };
       })}
-      enhancePrompt={() => {
+     
+        enhancePrompt={() => {
         enhancePrompt(
           input,
-          (input) => {
-            setInput(input);
-            scrollTextArea();
-          },
+          setInput,
           model,
-          provider,
+          provider?.name || DEFAULT_PROVIDER.name,
           apiKeys
         );
       }}
