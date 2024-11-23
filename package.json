@@ -20,7 +20,7 @@
     "dockerbuild": "docker build -t bolt-ai:development -t bolt-ai:latest --target bolt-ai-development .",
     "typecheck": "tsc",
     "typegen": "wrangler types",
-    "preview": "bun run build && bun run start"
+    "preview": "pnpm run build && pnpm run start"
   },
   "engines": {
     "node": ">=18.18.0"
