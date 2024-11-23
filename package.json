@@ -20,7 +20,7 @@
     "dockerbuild": "docker build -t bolt-ai:development -t bolt-ai:latest --target bolt-ai-development .",
     "typecheck": "tsc",
     "typegen": "wrangler types",
-    "preview": "pnpm run build && pnpm run start"
+    "preview": "bun run build && bun run start"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -118,6 +118,5 @@
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
-  },
-  "packageManager": "pnpm@9.4.0"
+  }
 }

@@ -61,7 +61,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                   })}
                 >
                   {isUserMessage && (
-                    <div className="flex items-center justify-center w-[34px] h-[34px] overflow-hidden bg-white text-gray-600 rounded-full shrink-0 self-start">
+                    <div className="flex items-center justify-center size-8 dark:opacity-70 overflow-hidden bg-white text-gray-600 rounded-full shrink-0 self-start">
                       <div className="i-ph:user-fill text-xl"></div>
                     </div>
                   )}
@@ -74,6 +74,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                         <Tooltip.Trigger asChild>
                           {messageId && (
                             <button
+                              title="Revert to this message"
                               onClick={() => handleRewind(messageId)}
                               key="i-ph:arrow-u-up-left"
                               className={classNames(
@@ -98,6 +99,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <button
+                            title="Fork chat from this message"
                             onClick={() => handleFork(messageId)}
                             key="i-ph:git-fork"
                             className={classNames(
