@@ -1,6 +1,6 @@
 {
-  "name": "bolt",
-  "description": "StackBlitz AI Agent",
+  "name": "oTToDev",
+  "description": "AI-Powered Full-Stack Web Development Agent",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
