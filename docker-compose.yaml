@@ -1,10 +1,10 @@
 services:
-  bolt-ai:
-    image: bolt-ai:production
+  app-prod:
+    image: ottodev:production
     build:
       context: .
       dockerfile: Dockerfile
-      target: bolt-ai-production
+      target: ottodev-production
     ports:
       - "5173:5173"
     env_file: ".env.local"
@@ -29,10 +29,10 @@ services:
     profiles:
       - production  # This service only runs in the production profile
 
-  bolt-ai-dev:
-    image: bolt-ai:development
+  app-dev:
+    image: ottodev:development
     build:
-      target: bolt-ai-development
+      target: ottodev-development
     environment:
       - NODE_ENV=development
       - VITE_HMR_PROTOCOL=ws
