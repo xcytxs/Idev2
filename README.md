@@ -236,6 +236,12 @@ When you add a new model to the MODEL_LIST array, it will immediately be availab
 - `pnpm run typegen`: Generates TypeScript types using Wrangler.
 - `pnpm run deploy`: Builds the project and deploys it to Cloudflare Pages.
 
+## Road Map
+
+[![oTToDev: Roadmap](./public/roadmap.png)](https://roadmap.sh/r/ottodev-roadmap-2ovzo)
+
+Here is a link to an update road map - https://roadmap.sh/r/ottodev-roadmap-2ovzo
+
 ## Development
 
 To start the development server:
