@@ -119,6 +119,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [modelList, setModelList] = useState(MODEL_LIST);
+    const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
       // Load API keys from cookies on component mount
@@ -202,30 +203,46 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </ClientOnly>
               <div
                 className={classNames(
-                  ' bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mb-6',
+                  'dark:bg-neutral-900/90 backdrop-blur-md p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mb-6 relative',
                   {
                     'sticky bottom-2': chatStarted,
                   },
                 )}
               >
-                <ModelSelector
-                  key={provider?.name + ':' + modelList.length}
-                  model={model}
-                  setModel={setModel}
-                  modelList={modelList}
-                  provider={provider}
-                  setProvider={setProvider}
-                  providerList={PROVIDER_LIST}
-                  apiKeys={apiKeys}
-                />
-
-                {provider && (
-                  <APIKeyManager
+                <button
+                  onClick={() => setIsVisible(!isVisible)}
+                  className="text-white bg-neutral-900/50 backdrop-blur p-1 shadow rounded mb-2 absolute -top-6"
+                >
+                  <div
+                    className={classNames('i-ph:caret-line-down size-4', {
+                      'transform rotate-180': isVisible,
+                    })}
+                  ></div>
+                </button>
+                <div
+                  className={classNames({
+                    hidden: isVisible,
+                  })}
+                >
+                  <ModelSelector
+                    key={provider?.name + ':' + modelList.length}
+                    model={model}
+                    setModel={setModel}
+                    modelList={modelList}
                     provider={provider}
-                    apiKey={apiKeys[provider.name] || ''}
-                    setApiKey={(key) => updateApiKey(provider.name, key)}
+                    setProvider={setProvider}
+                    providerList={PROVIDER_LIST}
+                    apiKeys={apiKeys}
                   />
-                )}
+
+                  {provider && (
+                    <APIKeyManager
+                      provider={provider}
+                      apiKey={apiKeys[provider.name] || ''}
+                      setApiKey={(key) => updateApiKey(provider.name, key)}
+                    />
+                  )}
+                </div>
 
                 <div
                   className={classNames(
