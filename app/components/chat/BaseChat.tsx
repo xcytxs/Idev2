@@ -14,6 +14,7 @@ import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
 import { useState } from 'react';
 import { APIKeyManager } from './APIKeyManager';
+import VoiceInput from './VoiceInput.client';
 import Cookies from 'js-cookie';
 
 import styles from './BaseChat.module.scss';
@@ -281,7 +282,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         className={classNames('transition-all', {
                           'opacity-100!': enhancingPrompt,
                           'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
-                            promptEnhanced,
+                          promptEnhanced,
                         })}
                         onClick={() => enhancePrompt?.()}
                       >
@@ -297,6 +298,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
+                      <ClientOnly>
+                        {() => (
+                          <VoiceInput
+                            initialValue={input}
+                            disabled={isStreaming}
+                            onChange={(newValue) => {
+                              if (handleInputChange) {
+                                const event = {
+                                  target: { value: newValue }
+                                } as React.ChangeEvent<HTMLTextAreaElement>;
+                                handleInputChange(event);
+                              }
+                            }}
+                          />
+                        )}
+                      </ClientOnly>
                     </div>
                     {input.length > 3 ? (
                       <div className="text-xs text-bolt-elements-textTertiary">
