@@ -167,17 +167,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ref={ref}
         className={classNames(
           styles.BaseChat,
-          'relative flex flex-col lg:flex-row h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
+          'relative flex flex-col lg:flex-row h-full w-full overflow-hidden bg-bolt-elements-background-depth-1 relative',
         )}
         data-chat-visible={showChat}
       >
+        <div className="h-10 w-3/5 -top-10 rounded-full bg-blue-500/50 dark:bg-blue-600/40 absolute blur-3xl"></div>
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div ref={scrollRef} className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[26vh] max-w-chat mx-auto text-center px-4 lg:px-0">
-                <h1 className="text-3xl lg:text-6xl font-bold bg-gradient-to-r to-bolt-elements-textSecondary via-bolt-elements-textPrimary bg-clip-text text-transparent py-2 from-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
+              <div id="intro" className="mt-[26vh] max-w-5xl mx-auto text-center px-4 lg:px-0">
+                <h1 className="text-3xl lg:text-6xl font-bold bg-gradient-to-r to-bolt-elements-textSecondary via-bolt-elements-textPrimary bg-clip-text text-transparent py-2 from-bolt-elements-textPrimary mb-4 animate-fade-in tracking-tight">
+                  Where ideas begin ✨
                 </h1>
                 <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
                   Bring ideas to life in seconds or get help on existing projects.
@@ -209,19 +210,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   },
                 )}
               >
-                <button
-                  onClick={() => setIsVisible(!isVisible)}
-                  className="text-white bg-neutral-900/50 backdrop-blur p-1 shadow rounded mb-2 absolute -top-6"
-                >
-                  <div
-                    className={classNames('i-ph:caret-line-down size-4', {
-                      'transform rotate-180': isVisible,
-                    })}
-                  ></div>
-                </button>
+                {chatStarted && (
+                  <button
+                    onClick={() => setIsVisible(!isVisible)}
+                    className="dark:text-white text-black dark:bg-neutral-900/50 backdrop-blur p-1 shadow rounded mb-2 absolute -top-6"
+                  >
+                    <div
+                      className={classNames('i-ph:caret-line-down size-4', {
+                        'transform rotate-180': !isVisible,
+                      })}
+                    ></div>
+                  </button>
+                )}
                 <div
                   className={classNames({
-                    hidden: isVisible,
+                    hidden: !isVisible,
                   })}
                 >
                   <ModelSelector
@@ -327,8 +330,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </div>
             {!chatStarted && (
-              <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
-                <div className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
+              <div id="examples" className="relative w-full max-w-2xl mx-auto mt-6 flex justify-center">
+                <div className="flex flex-wrap items-center justify-center gap-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_200%)] hover:[mask-image:none] w-full">
                   {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
                     return (
                       <button
@@ -336,7 +339,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         onClick={(event) => {
                           sendMessage?.(event, examplePrompt.text);
                         }}
-                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
+                        className="group flex items-center bg-gray-900 px-3 rounded-full  gap-2 justify-center text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme text-sm"
                       >
                         {examplePrompt.text}
                         <div className="i-ph:arrow-bend-down-left" />
