@@ -9,6 +9,8 @@ import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
+import { messageStore } from './messages';
+import { chatStore } from './chat';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
@@ -28,6 +30,19 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 
 export type WorkbenchViewType = 'code' | 'preview';
 
+interface GitHubTreeResponse {
+  sha: string;
+  tree: Array<{
+    path: string;
+    mode: string;
+    type: string;
+    size?: number;
+    sha: string;
+    url: string;
+  }>;
+  truncated: boolean;
+}
+
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
   #filesStore = new FilesStore(webcontainer);
@@ -36,7 +51,7 @@ export class WorkbenchStore {
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
-  showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
+  showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(true);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   modifiedFiles = new Set<string>();
@@ -381,6 +396,62 @@ export class WorkbenchStore {
     }
 
     return syncedFiles;
+  }
+
+  async importFromGithub(owner: string, repo: string) {
+    try {
+      // Get the entire tree in one API call
+      const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
+      if (!treeResponse.ok) {
+        throw new Error(`Failed to get tree: ${treeResponse.statusText}`);
+      }
+      const treeData: GitHubTreeResponse = await treeResponse.json();
+
+      // Filter tree items based on basePath if specified
+      const relevantFiles = treeData.tree.filter((item) => {
+        return item.type === 'blob';
+      });
+
+      // Download and write files
+      const actions = [];
+      for (const file of relevantFiles) {
+        const relativePath = file.path;
+        const targetPath = ['.', ...relativePath.split('/')].join('/');
+
+        // Download file content
+        const contentResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${file.path}`);
+        if (!contentResponse.ok) {
+          console.error(`Failed to download file ${file.path}`);
+          continue;
+        }
+
+        const content = await contentResponse.text();
+        const action = `<boltAction type="file" id="create-${targetPath}" filePath="${targetPath}">${content}</boltAction>`;
+        actions.push(action);
+        console.debug(`Written file ${targetPath}`);
+      }
+
+      // actions.push(`<boltAction type="shell">npm i</boltAction>`);
+      // actions.push(`<boltAction type="start">npm run dev</boltAction>`);
+
+      console.debug(`GitHub repository downloaded`);
+
+      const artifact = `<boltArtifact id="github-import" title="Import ${owner}/${repo}">${actions.join('')}</boltArtifact>`;
+
+      // Update UI state
+      this.setShowWorkbench(true);
+      chatStore.setKey('started', true);
+      
+      // Append message with the artifact
+      await messageStore.append({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: artifact,
+      });
+    } catch (error) {
+      console.error('Failed to process GitHub repository\n\n', error);
+      throw error;
+    }
   }
 
   async pushToGitHub(repoName: string, githubUsername: string, ghToken: string) {

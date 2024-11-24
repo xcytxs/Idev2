@@ -1,6 +1,5 @@
 import { WebContainer } from '@webcontainer/api';
 import { atom, map, type MapStore } from 'nanostores';
-import * as nodePath from 'node:path';
 import type { BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -200,7 +199,7 @@ export class ActionRunner {
 
     const webcontainer = await this.#webcontainer;
 
-    let folder = nodePath.dirname(action.filePath);
+    let folder = action.filePath.split('/').slice(0, -1).join('/');
 
     // remove trailing slashes
     folder = folder.replace(/\/+$/g, '');
@@ -221,6 +220,7 @@ export class ActionRunner {
       logger.error('Failed to write file\n\n', error);
     }
   }
+
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();
 

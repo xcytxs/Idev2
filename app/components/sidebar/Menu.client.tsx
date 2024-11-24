@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
+import { deleteById, getAll } from '~/lib/persistence/db';
+import { useChatHistory, type ChatHistoryItem } from '~/lib/persistence/useChatHistory';
+import { messageStore } from '~/lib/stores/messages';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
@@ -40,6 +42,7 @@ export function Menu() {
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
 
   const loadEntries = useCallback(() => {
+    const db = messageStore.db;
     if (db) {
       getAll(db)
         .then((list) => list.filter((item) => item.urlId && item.description))
@@ -51,12 +54,13 @@ export function Menu() {
   const deleteItem = useCallback((event: React.UIEvent, item: ChatHistoryItem) => {
     event.preventDefault();
 
+    const db = messageStore.db;
     if (db) {
       deleteById(db, item.id)
         .then(() => {
           loadEntries();
 
-          if (chatId.get() === item.id) {
+          if (messageStore.state.get().chatId === item.id) {
             // hard page navigation to clear the stores
             window.location.pathname = '/';
           }
