@@ -34,6 +34,7 @@ const agentOutputParser = new AgentOutputParser({
       toolName: event.name,
       content: JSON.stringify(event.parameters),
       parameters: event.parameters,
+      processed: event.processed
     }
     
     workbenchStore.addAction({
@@ -107,7 +108,7 @@ export function useMessageParser() {
 
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant') {
-        const newParsedContent = messageParser.parse(message.id, message.content);
+        const newParsedContent = messageParser.parse(message.id, message.content,message.annotations);
 
         setParsedMessages((prevParsed) => ({
           ...prevParsed,

@@ -3,7 +3,7 @@ import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import { AgentOutputParser } from '../agents/agent-output-parser';
-import { agentRegistry } from '~/utils/agentFactory';
+import type { JSONValue } from 'ai';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
 const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
@@ -63,7 +63,7 @@ export class StreamingMessageParser {
     
   }
 
-  parse(messageId: string, input: string) {
+  parse(messageId: string, input: string,annotations?:JSONValue[]) {
     let state = this.#messages.get(messageId);
     const TOOL_CALL_TAG_OPEN = this._options.agentOutputParser.getToolCallTagOpen();
     if (!state) {
@@ -180,7 +180,16 @@ export class StreamingMessageParser {
         }
       }
       else if (state.insideToolCall) {
-        let { cursor, event } = this._options.agentOutputParser.parse(messageId, input.slice(state.position));
+        // skip execution if the message has been processed already
+        let processed=false;
+        if (annotations) {
+          try {
+            processed = annotations.find(a => a ==='processed')!==undefined; 
+          } catch (error) {
+            console.log("Failed to parse annotations");
+          }
+        }
+        let { cursor, event } = this._options.agentOutputParser.parse(messageId, input.slice(state.position), processed);
         console.log({ cursor, event, input, state })
 
         if (event && event.type == 'toolCallComplete') {

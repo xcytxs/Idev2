@@ -315,11 +315,13 @@ export class WorkbenchStore {
         return;
       }
       let result = actionState.result
-      await this.addChatMessage?.({
-        role:'user',
-        content:`Below is the result of tool execution.\n\n${JSON.stringify(result)}`, 
-        annotations:["toolResponse"]
-      }); 
+      if (!actionState.processed) {
+        await this.addChatMessage?.({
+          role:'user',
+          content:`Below is the result of tool execution.\n\n${JSON.stringify(result)}`, 
+          annotations:["toolResponse"]
+        }); 
+      }
     }
     else {
       await artifact.runner.runAction(data);

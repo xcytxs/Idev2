@@ -23,6 +23,7 @@ export interface ToolAction extends BaseAction {
   toolName: string;
   parameters?: Record<string, string>;
   result?: string;
+  processed?: boolean;
 }
 
 export type BoltAction = FileAction | ShellAction | StartAction | ToolAction;

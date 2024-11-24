@@ -44,7 +44,17 @@ export function useChatHistory() {
       getMessages(db, mixedId)
         .then((storedMessages) => {
           if (storedMessages && storedMessages.messages.length > 0) {
-            setInitialMessages(storedMessages.messages);
+            // adding annotation to mark the message as processed
+            let messages = storedMessages.messages.map(m=>{
+              return {
+                ...m,
+                annotations:[
+                  ...(m.annotations||[]).filter(a=>a!=='processed'),
+                  'processed'
+                ]
+              }
+            });
+            setInitialMessages(messages);
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);

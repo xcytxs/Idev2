@@ -21,6 +21,8 @@ interface ToolCallEvent {
     agentId: string;
     /** Optional parameters passed to the tool */
     parameters?: Record<string, string>;
+
+    processed?:boolean;
 }
 
 /**
@@ -116,7 +118,7 @@ export class AgentOutputParser {
      * @param fullBuffer - The complete input text to parse
      * @returns Object containing updated cursor and optional event
      */
-    parse(messageId: string, fullBuffer: string): { cursor: ParserCursor, event?: ToolCallEvent } {
+    parse(messageId: string, fullBuffer: string, processed:boolean=false): { cursor: ParserCursor, event?: ToolCallEvent } {
         // Get or create cursor for this message
         let cursor = this.cursors.get(messageId);
         if (!cursor) {
@@ -150,7 +152,7 @@ export class AgentOutputParser {
                         cursor.state = 'IN_PARAMETER';
                         cursor.tagBuffer = '';
                     } else if (cursor.tagBuffer === '</toolCall>') {
-                        let {cursor:newCursor,event} = this.handleToolCallEnd(messageId, cursor);
+                        let { cursor: newCursor, event } = this.handleToolCallEnd(messageId, cursor, processed);
                         return { cursor:newCursor, event };
                     } else if (cursor.tagBuffer === '</parameter>') {
                         this.handleParameterEnd(cursor);
@@ -241,7 +243,7 @@ export class AgentOutputParser {
      * @returns ToolCallEvent for the completion of the tool call
      * @private
      */
-    private handleToolCallEnd(messageId: string, cursor: ParserCursor) {
+    private handleToolCallEnd(messageId: string, cursor: ParserCursor, processed:boolean=false) {
         if (cursor.currentToolCallId == null) {
             return{cursor};
         }
@@ -251,7 +253,8 @@ export class AgentOutputParser {
             id: cursor.currentToolCallId,
             name: cursor.name!,
             agentId: cursor.agentId!,
-            parameters: cursor.parameters
+            parameters: cursor.parameters,
+            processed
         }
         if (this.callbacks.onToolCallComplete) {
             this.callbacks.onToolCallComplete(event);
