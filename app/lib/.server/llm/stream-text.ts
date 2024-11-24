@@ -50,10 +50,10 @@ async function generateSystemPrompt(messages: Messages,
   options?: StreamingOptions,
   apiKeys?: Record<string, string>,
 ) {
+  
   const coordinatorAgent = prebuiltAgents.coordinatorAgent
   let coordSystemPrompt = coordinatorAgent.generatePrompt()
-
-
+  
   let { text: coordResp } = await generateText({
     model: getModel(currentProvider, currentModel, env, apiKeys) as any,
     system: coordSystemPrompt,
@@ -63,7 +63,9 @@ async function generateSystemPrompt(messages: Messages,
   })
   let agentOutputParser = new AgentOutputParser();
   let coordOutput = agentOutputParser.parse(`${Date.now()}`, coordResp)
-
+  console.log(`Coordinator Response:`,coordOutput)
+  
+  
   let agentSystemPrompt = getSystemPrompt();
   if (coordOutput.event && coordOutput.event.type == 'toolCallComplete') {
     let { name, parameters } = coordOutput.event
@@ -108,7 +110,7 @@ export async function streamText(
   });
   
   let systemPrompt = getSystemPrompt();
-  if (toolConfig&&toolConfig.enabled) {
+  if (toolConfig && toolConfig.enabled && Object.keys(agentRegistry).length>1) {
    systemPrompt= await generateSystemPrompt(processedMessages, env, currentProvider, currentModel, options, apiKeys) 
   }
   

@@ -42,7 +42,7 @@ class AgentPromptGenerator {
         return `
 You are a ${this.config.description} with ONE purpose: ${this.config.purpose}. 
 You MUST respond ONLY with a toolCall tag structure.
-Your agentId is: ${this.config.agentId}
+Your callerId is: ${this.config.agentId}
 
 ${this.generateTemplateVariablesSection()}
 
@@ -53,13 +53,13 @@ ${this.generateToolsSection()}
 ## Response Format
 
 You MUST respond using ONLY this exact structure:
-<toolCall name="{tool_name}" agentId="${this.config.agentId}">
+<toolCall name="{tool_name}" callerId="${this.config.agentId}">
     <parameter name="{parameter_name}">{parameter_value}</parameter>
 </toolCall>
 
 Where:
 - tool_name must be one of: ${this.config.tools.map(t => `"${t.name}"`).join(', ')}
-- agentId must always be "${this.config.agentId}"
+- callerId must always be "${this.config.agentId}"
 
 ${this.generateRulesSection()}
 
@@ -72,10 +72,10 @@ ${this.generateExamplesSection()}
 1. Tag Structure Rules:
    - MUST use exactly one toolCall tag as the root
    - MUST set name attribute to one of the available tool names
-   - MUST include agentId="${this.config.agentId}" in every toolCall tag
+   - MUST include callerId="${this.config.agentId}" in every toolCall tag as property
    - MUST include all required parameters for the chosen tool
    - MUST use proper tag nesting and indentation
-   - MUST NOT add any additional tags or attributes besides name and agentId
+   - MUST NOT add any additional tags or attributes besides name and callerId
    - MUST NOT modify tag names or structure
 
 2. Parameter Rules:
@@ -90,10 +90,10 @@ ${this.generateExamplesSection()}
    - MUST use proper XML escaping for special characters
    - MUST maintain consistent indentation
 
-4. AgentId Rules:
-   - MUST always include agentId="${this.config.agentId}"
-   - MUST NOT modify or change the agentId
-   - MUST NOT omit the agentId
+4. callerId Rules:
+   - MUST always include callerId="${this.config.agentId}"
+   - MUST NOT modify or change the callerId
+   - MUST NOT omit the callerId
 
 NO EXCEPTIONS TO THESE RULES ARE ALLOWED.`;
     }
@@ -160,7 +160,7 @@ ${typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
     private generateExamplesSection(): string {
         return this.config.tools.map(tool =>
             `Example using ${tool.name}:
-<toolCall name="${tool.name}">
+<toolCall name="${tool.name}" callerId="${this.config.agentId}">
 ${tool.parameters.map(param =>
                 `    <parameter name="${param.name}">${param.example}</parameter>`
             ).join('\n')}

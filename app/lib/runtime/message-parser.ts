@@ -190,7 +190,7 @@ export class StreamingMessageParser {
           }
         }
         let { cursor, event } = this._options.agentOutputParser.parse(messageId, input.slice(state.position), processed);
-        console.log({ cursor, event, input, state })
+        // console.log({ cursor, event, input, state })
 
         if (event && event.type == 'toolCallComplete') {
           state.position += cursor.position + 1;

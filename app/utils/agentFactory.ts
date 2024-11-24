@@ -78,8 +78,8 @@ const coordinatorAgent = new Agent({
             items: [
                 'Always analyze user query intent before routing',
                 'Route to the most specialized agent for the task',
+                'MUST Use your callerId `coordinator` in the tool call tag ',
                 // 'Ask for clarification if query intent is ambiguous',
-                'Only route to available agents in the provided agent list',
                 'MUST ROUTE TO CODE SCAFFOLDING AGENT IF THIS IS A NEW PROJECT OR START OF A NEW DEVELOPMENT',
                 'DO NOT ROUTE TO OTHER AGENT IF PROJECT IS INITIALIZED AND CODE GENERATION CAN SOLVE THE PROBLEM',
             ]
@@ -123,8 +123,8 @@ const coordinatorAgent = new Agent({
                 {
                     name: 'agentId',
                     type: 'string',
-                    description: 'ID of the agent to route to',
-                    example: 'math-agent'
+                    description: `agentId of the agent must be one of the following [${availableAgents.map(agent => agent.getConfig().agentId).join(',')}]`,
+                    example: availableAgents[0].getConfig().agentId
                 },
                 {
                     name: 'query',
@@ -210,8 +210,7 @@ const coordinatorAgent = new Agent({
 coordinatorAgent.setTemplateValue('availableAgents', availableAgents.map(agent => {
     return JSON.stringify({
         agentId: agent.getConfig().agentId,
-        name: agent.getConfig().name,
-        description: agent.getConfig().description,
+        
         purpose: agent.getConfig().purpose,
         capabilities: agent.getTools().map(t => t.label).join(', ')
     }, null, 2)

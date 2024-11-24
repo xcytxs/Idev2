@@ -138,8 +138,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     
     if (messages.length > initialMessages.length) {
       // filter out tool responses as it will be automatically added by the runner
-      let filteredMessages = messages.filter((message) => !message.annotations?.find((a) => a === 'toolResponse'));
-      storeMessageHistory(filteredMessages).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
   }, [messages, isLoading, parseMessages]);
 
