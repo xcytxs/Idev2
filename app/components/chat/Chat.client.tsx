@@ -1,16 +1,12 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
 import { useStore } from '@nanostores/react';
 import type { Message } from 'ai';
-import { useChat } from 'ai/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
 import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
+import { messageStore } from '~/lib/stores/messages';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
@@ -87,27 +83,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   });
 
   const { showChat, started } = useStore(chatStore);
+  const messages = useStore(messageStore.state);
 
   const [animationScope, animate] = useAnimate();
 
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
-  const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
-    api: '/api/chat',
-    body: {
-      apiKeys,
-    },
-    onError: (error) => {
-      logger.error('Request failed\n\n', error);
-      toast.error(
-        'There was an error processing your request: ' + (error.message ? error.message : 'No details were returned'),
-      );
-    },
-    onFinish: () => {
-      logger.debug('Finished streaming');
-    },
-    initialMessages,
-  });
+  useEffect(() => {
+    messageStore.setMessages(initialMessages);
+  }, [initialMessages]);
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
@@ -125,12 +109,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, [started]);
 
   useEffect(() => {
-    parseMessages(messages, isLoading);
+    parseMessages(messages.messages, messages.isLoading);
 
-    if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+    if (messages.messages.length > initialMessages.length) {
+      storeMessageHistory(messages.messages).catch((error) => toast.error(error.message));
     }
-  }, [messages, isLoading, parseMessages]);
+  }, [messages.messages, messages.isLoading, parseMessages]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -141,7 +125,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   };
 
   const abort = () => {
-    stop();
+    messageStore.setIsLoading(false);
     chatStore.setKey('aborted', true);
     workbenchStore.abortAllActions();
   };
@@ -157,7 +141,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       textarea.style.height = `${Math.min(scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
       textarea.style.overflowY = scrollHeight > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden';
     }
-  }, [input, textareaRef]);
+  }, [messages.input, textareaRef]);
 
   const runAnimation = async () => {
     if (chatStarted) {
@@ -175,9 +159,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   };
 
   const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
-    const _input = messageInput || input;
+    const _input = messageInput || messages.input;
 
-    if (_input.length === 0 || isLoading) {
+    if (_input.length === 0 || messages.isLoading) {
       return;
     }
 
@@ -206,7 +190,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
        * manually reset the input and we'd have to manually pass in file attachments. However, those
        * aren't relevant here.
        */
-      append({ role: 'user', content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${diff}\n\n${_input}` });
+      await messageStore.append({
+        role: 'user',
+        id: Date.now().toString(),
+        content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${diff}\n\n${_input}`,
+      });
 
       /**
        * After sending a new message we reset all modifications since the model
@@ -214,13 +202,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
        */
       workbenchStore.resetAllFileModifications();
     } else {
-      append({ role: 'user', content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${_input}` });
+      await messageStore.append({
+        role: 'user',
+        id: Date.now().toString(),
+        content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${_input}`,
+      });
     }
 
-    setInput('');
-
+    messageStore.setInput('');
     resetEnhancer();
-
     textareaRef.current?.blur();
   };
 
@@ -244,14 +234,18 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    messageStore.setInput(e.target.value);
+  };
+
   return (
     <BaseChat
       ref={animationScope}
       textareaRef={textareaRef}
-      input={input}
+      input={messages.input}
       showChat={showChat}
       chatStarted={chatStarted}
-      isStreaming={isLoading}
+      isStreaming={messages.isLoading}
       enhancingPrompt={enhancingPrompt}
       promptEnhanced={promptEnhanced}
       sendMessage={sendMessage}
@@ -263,7 +257,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       scrollRef={scrollRef}
       handleInputChange={handleInputChange}
       handleStop={abort}
-      messages={messages.map((message, i) => {
+      messages={messages.messages.map((message, i) => {
         if (message.role === 'user') {
           return message;
         }
@@ -275,9 +269,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       })}
       enhancePrompt={() => {
         enhancePrompt(
-          input,
+          messages.input,
           (input) => {
-            setInput(input);
+            messageStore.setInput(input);
             scrollTextArea();
           },
           model,

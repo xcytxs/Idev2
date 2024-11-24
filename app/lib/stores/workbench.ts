@@ -9,12 +9,13 @@ import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
+import { messageStore } from './messages';
+import { chatStore } from './chat';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import * as nodePath from 'node:path';
 import { extractRelativePath } from '~/utils/diff';
-import { chatStore } from './chat';
 
 export interface ArtifactState {
   id: string;
@@ -398,8 +399,6 @@ export class WorkbenchStore {
   }
 
   async importFromGithub(owner: string, repo: string) {
-    const wc = await webcontainer;
-
     try {
       // Get the entire tree in one API call
       const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
@@ -410,27 +409,14 @@ export class WorkbenchStore {
 
       // Filter tree items based on basePath if specified
       const relevantFiles = treeData.tree.filter((item) => {
-        // if (basePath) {
-        //   return item.path.startsWith(basePath) && item.type === 'blob';
-        // }
         return item.type === 'blob';
       });
 
-      await wc.fs.rm('.', { recursive: true });
-      await wc.fs.mkdir('.', { recursive: true });
-      this.setShowWorkbench(true);
-      chatStore.setKey('started', true);
-
       // Download and write files
+      const actions = [];
       for (const file of relevantFiles) {
         const relativePath = file.path;
         const targetPath = ['.', ...relativePath.split('/')].join('/');
-
-        // Create parent directory if needed
-        const directory = targetPath.split('/').slice(0, -1).join('/');
-        if (directory !== '.') {
-          await wc.fs.mkdir(directory, { recursive: true });
-        }
 
         // Download file content
         const contentResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${file.path}`);
@@ -439,12 +425,29 @@ export class WorkbenchStore {
           continue;
         }
 
-        const content = new Uint8Array(await contentResponse.arrayBuffer());
-        await wc.fs.writeFile(targetPath, content);
+        const content = await contentResponse.text();
+        const action = `<boltAction type="file" id="create-${targetPath}" filePath="${targetPath}">${content}</boltAction>`;
+        actions.push(action);
         console.debug(`Written file ${targetPath}`);
       }
 
+      // actions.push(`<boltAction type="shell">npm i</boltAction>`);
+      // actions.push(`<boltAction type="start">npm run dev</boltAction>`);
+
       console.debug(`GitHub repository downloaded`);
+
+      const artifact = `<boltArtifact id="github-import" title="Import ${owner}/${repo}">${actions.join('')}</boltArtifact>`;
+
+      // Update UI state
+      this.setShowWorkbench(true);
+      chatStore.setKey('started', true);
+      
+      // Append message with the artifact
+      await messageStore.append({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: artifact,
+      });
     } catch (error) {
       console.error('Failed to process GitHub repository\n\n', error);
       throw error;
