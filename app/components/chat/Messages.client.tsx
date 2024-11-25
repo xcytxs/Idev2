@@ -19,7 +19,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
       {messages.length > 0
         ? messages
             // filter out tool responses
-            .filter((message) => !(message.annotations?.find((a) => a === 'toolResponse')))
+            .filter((message) => (message.annotations?.find((a) => a !== 'toolResponse')))
             .map((message, index) => {
               const { role, content } = message;
               const isUserMessage = role === 'user';
