@@ -87,11 +87,16 @@ export function GitHubAuth({ onAuthComplete, onError, children }: GitHubAuthProp
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as GitHubErrorResponse));
-        throw new Error(
-          errorData?.error || 
-          `Failed to start authentication process (${response.status})`
-        );
+        let errorMessage = `Failed to start authentication process (${response.status})`;
+        try {
+          const errorData: GitHubErrorResponse = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error_description || errorData.error;
+          }
+        } catch {
+          // Use default error message if JSON parsing fails
+        }
+        throw new Error(errorMessage);
       }
 
       const data: DeviceCodeResponse = await response.json();
