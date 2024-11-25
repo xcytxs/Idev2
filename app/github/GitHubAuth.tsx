@@ -7,6 +7,11 @@ interface GitHubAuthProps {
   children?: React.ReactNode;
 }
 
+interface GitHubErrorResponse {
+  error?: string;
+  error_description?: string;
+}
+
 interface DeviceCodeResponse {
   device_code: string;
   user_code: string;
@@ -82,7 +87,7 @@ export function GitHubAuth({ onAuthComplete, onError, children }: GitHubAuthProp
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
+        const errorData = await response.json().catch(() => ({} as GitHubErrorResponse));
         throw new Error(
           errorData?.error || 
           `Failed to start authentication process (${response.status})`
