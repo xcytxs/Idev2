@@ -144,6 +144,7 @@ export function Menu() {
                     exportChat={exportChat}
                     onDelete={(event) => handleDeleteClick(event, item)}
                     onDuplicate={() => handleDuplicate(item.id)}
+                    className="NavigationIcon"
                   />
                 ))}
               </div>
