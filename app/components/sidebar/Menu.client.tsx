@@ -8,8 +8,8 @@ import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
-import { GitHubAuth } from '~/github/GitHubAuth';
-import { useGitHubAuth } from '~/github/useGitHubAuth';
+import { GitHubAuth } from '~/lib/github/GitHubAuth';
+import { useGitHubAuth } from '~/lib/github/useGitHubAuth';
 
 const menuVariants = {
   closed: {
