@@ -15,7 +15,7 @@ COPY . .
 EXPOSE 5173
 
 # Production image
-FROM base AS bolt-ai-production
+FROM base AS ottodev-production
 
 # Define environment variables with default values or let them be overridden
 ARG GROQ_API_KEY
@@ -48,7 +48,7 @@ RUN npm run build
 CMD [ "pnpm", "run", "dockerstart"]
 
 # Development image
-FROM base AS bolt-ai-development
+FROM base AS ottodev-development
 
 # Define the same environment variables for development
 ARG GROQ_API_KEY

@@ -1,6 +1,6 @@
 {
-  "name": "bolt",
-  "description": "StackBlitz AI Agent",
+  "name": "oTToDev",
+  "description": "AI-Powered Full-Stack Web Development Agent",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -15,9 +15,9 @@
     "lint:fix": "npm run lint -- --fix && prettier app --write",
     "start": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings",
     "dockerstart": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings --ip 0.0.0.0 --port 5173 --no-show-interactive-dev-session",
-    "dockerrun": "docker run -it -d --name bolt-ai-live -p 5173:5173 --env-file .env.local bolt-ai",
-    "dockerbuild:prod": "docker build -t bolt-ai:production -t bolt-ai:latest --target bolt-ai-production .",
-    "dockerbuild": "docker build -t bolt-ai:development -t bolt-ai:latest --target bolt-ai-development .",
+    "dockerrun": "docker run -it -d --name ottodev-live -p 5173:5173 --env-file .env.local ottodev",
+    "dockerbuild:prod": "docker build -t ottodev:production -t ottodev:latest --target ottodev-production .",
+    "dockerbuild": "docker build -t ottodev:development -t ottodev:latest --target ottodev-development .",
     "typecheck": "tsc",
     "typegen": "wrangler types",
     "preview": "pnpm run build && pnpm run start"
