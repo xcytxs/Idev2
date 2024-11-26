@@ -257,8 +257,29 @@ const PROVIDER_LIST: ProviderInfo[] = [
     getDynamicModels: getLMStudioModels,
     getApiKeyLink: 'https://lmstudio.ai/',
     labelForGetApiKey: 'Get LMStudio',
-    icon: 'i-ph:cloud-arrow-down',
+    icon: "i-ph:cloud-arrow-down",
   },
+  {
+    name: 'NovitaAI',
+    staticModels: [
+      { name: 'qwen/qwen-2.5-72b-instruct', label: 'qwen-2.5-72b-instruct', provider: 'NovitaAI', maxTokenAllowed: 16000 },
+      { name: 'meta-llama/llama-3.1-405b-instruct', label: 'llama-3.1-405b-instruct', provider: 'NovitaAI', maxTokenAllowed: 16384 }
+    ],
+    getApiKeyLink: 'https://novita.ai/settings/api-keys'
+  },
+  {
+    name: 'TogetherAI',
+    staticModels: [
+      { name: 'Qwen/Qwen2.5-72B-Instruct-Turbo', label: 'Qwen2.5-72B-Instruct-Turbo', provider: 'TogetherAI', maxTokenAllowed: 1000 },
+      { name: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', label: 'Llama 3.1 8B Instruct Turbo', provider: 'TogetherAI', maxTokenAllowed: 1000 },
+    ],
+  },
+  {
+    name: 'Azure',
+    staticModels: [
+      { name: 'gpt-4o', label: 'gpt-4o (resource:key)', provider: 'Azure', maxTokenAllowed: 1000 }
+    ],
+  }
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
