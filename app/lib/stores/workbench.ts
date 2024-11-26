@@ -491,6 +491,34 @@ export class WorkbenchStore {
       console.error('Error pushing to GitHub:', error instanceof Error ? error.message : String(error));
     }
   }
+
+  async addFile({ name, content, path }: { name: string; content: string; path: string }) {
+    try {
+      const files = this.files.get() || {};
+      files[path] = {
+        type: 'file',
+        content,
+        path,
+        modified: false,
+        isBinary: false,
+        size: content.length,
+        lastModified: new Date().getTime()
+      };
+      this.files.set(files);
+      this.setSelectedFile(path);
+      
+      // Forcer une mise à jour des documents
+      this.setDocuments(files);
+      
+      // Forcer un rafraîchissement de l'interface
+      this.showWorkbench.set(true);
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding file:', error);
+      throw error;
+    }
+  }
 }
 
 export const workbenchStore = new WorkbenchStore();
