@@ -11,9 +11,6 @@ dist
 dist-ssr
 *.local
 
-.vscode/*
-.vscode/launch.json
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
