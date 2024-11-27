@@ -2,7 +2,7 @@ export type DebugLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
 type LoggerFunction = (...messages: any[]) => void;
 
-interface Logger {
+export interface Logger {
   trace: LoggerFunction;
   debug: LoggerFunction;
   info: LoggerFunction;
