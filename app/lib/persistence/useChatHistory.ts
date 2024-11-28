@@ -13,6 +13,7 @@ import {
   duplicateChat,
   createChatFromMessages,
 } from './db';
+import { useSnapshot } from './useSnapshot';
 
 export interface ChatHistoryItem {
   id: string;
@@ -32,8 +33,12 @@ export const description = atom<string | undefined>(undefined);
 export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
+  console.log({mixedId});
+  
+  const {snapshot, takeSnapshot,restoreSnapshot}=useSnapshot(mixedId);
   const [searchParams] = useSearchParams();
 
+  const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
@@ -54,11 +59,46 @@ export function useChatHistory() {
         .then((storedMessages) => {
           if (storedMessages && storedMessages.messages.length > 0) {
             const rewindId = searchParams.get('rewindTo');
-            const filteredMessages = rewindId
-              ? storedMessages.messages.slice(0, storedMessages.messages.findIndex((m) => m.id === rewindId) + 1)
-              : storedMessages.messages;
+            let startingIdx=0;
+            let endingIdx = rewindId ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1 : storedMessages.messages.length;
+            if (snapshot?.chatIndex && snapshot.chatIndex <=endingIdx){
+              startingIdx=snapshot.chatIndex;
+            }
+            let filteredMessages = storedMessages.messages.slice(startingIdx, endingIdx);
 
+            startingIdx>0? setArchivedMessages(storedMessages.messages.slice(0,startingIdx)):setArchivedMessages([]);
+            if (startingIdx>0){
+              filteredMessages=[
+                {
+                  "id":`${Date.now()}`,
+                  "role":"assistant",
+                  "content":` 📦 Restoring chat from snapshot`, 
+                  annotations:['no-store']
+                },
+                {
+                  "id":`${Date.now()}`,
+                  "role":"assistant",
+                  "content":` Below are the files and content of the files restored:
+                  ### Files ###
+                  ${Object.entries(snapshot?.files||{}).map(([key,value])=>{
+                    if(value?.type==="file"){
+                      return `
+                      #### ${key}
+                      ${value.content}
+                      `
+                    }
+                  }).join("\n")}
+                  `, 
+                  annotations:['no-store','hidden']
+
+                },
+                ...filteredMessages
+              ]
+              restoreSnapshot();
+
+            }
             setInitialMessages(filteredMessages);
+            
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);
@@ -72,7 +112,7 @@ export function useChatHistory() {
           toast.error(error.message);
         });
     }
-  }, []);
+  }, [snapshot]);
 
   return {
     ready: !mixedId || ready,
@@ -83,13 +123,16 @@ export function useChatHistory() {
       }
 
       const { firstArtifact } = workbenchStore;
-
+      messages=messages.filter((m)=>!m.annotations?.includes('no-store'))
+      let _urlId = urlId
       if (!urlId && firstArtifact?.id) {
         const urlId = await getUrlId(db, firstArtifact.id);
-
+        _urlId=urlId
         navigateChat(urlId);
         setUrlId(urlId);
       }
+      
+      takeSnapshot(archivedMessages.length + messages.length, workbenchStore.files.get(), _urlId)
 
       if (!description.get() && firstArtifact?.title) {
         description.set(firstArtifact?.title);
