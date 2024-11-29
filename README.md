@@ -1,8 +1,22 @@
 [![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
 
-# Bolt.new Fork by Cole Medin - oTToDev
+# oTToDev - The Multi-LLM Fork of Bolt.new
 
-This fork of Bolt.new (oTToDev) allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+oTToDev is a powerful fork of Bolt.new that enables you to choose from multiple LLM providers for each prompt. Currently supported models include:
+
+- OpenAI
+- Anthropic
+- Ollama
+- OpenRouter
+- Gemini
+- LMStudio
+- Mistral
+- xAI
+- HuggingFace
+- DeepSeek
+- Groq
+
+The platform is easily extendable to support any model compatible with the Vercel AI SDK!
 
 Join the community for oTToDev!
 
