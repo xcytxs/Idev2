@@ -6,48 +6,11 @@ This fork of Bolt.new (oTToDev) allows you to choose the LLM that you use for ea
 
 Join the community for oTToDev!
 
-https://thinktank.ottomator.ai
+[Please join our community here to stay update with the latest!](https://thinktank.ottomator.ai)
 
-# Requested Additions to this Fork - Feel Free to Contribute!!
+# Requested Additions - Feel Free to Contribute!!
 
-- ✅ OpenRouter Integration (@coleam00)
-- ✅ Gemini Integration (@jonathands)
-- ✅ Autogenerate Ollama models from what is downloaded (@yunatamos)
-- ✅ Filter models by provider (@jasonm23)
-- ✅ Download project as ZIP (@fabwaseem)
-- ✅ Improvements to the main Bolt.new prompt in `app\lib\.server\llm\prompts.ts` (@kofi-bhr)
-- ✅ DeepSeek API Integration (@zenith110)
-- ✅ Mistral API Integration (@ArulGandhi)
-- ✅ "Open AI Like" API Integration (@ZerxZ)
-- ✅ Ability to sync files (one way sync) to local folder (@muzafferkadir)
-- ✅ Containerize the application with Docker for easy installation (@aaronbolton)
-- ✅ Publish projects directly to GitHub (@goncaloalves)
-- ✅ Ability to enter API keys in the UI (@ali00209)
-- ✅ xAI Grok Beta Integration (@milutinke)
-- ✅ LM Studio Integration (@karrot0)
-- ✅ HuggingFace Integration (@ahsan3219)
-- ✅ Bolt terminal to see the output of LLM run commands (@thecodacus)
-- ✅ Streaming of code output (@thecodacus)
-- ✅ Ability to revert code to earlier version (@wonderwhy-er)
-- ✅ Cohere Integration (@hasanraiyan)
-- ✅ Dynamic model max token length (@hasanraiyan)
-- ⬜ **HIGH PRIORITY** - Prevent Bolt from rewriting files as often (file locking and diffs)
-- ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
-- ⬜ **HIGH PRIORITY** - Load local projects into the app
-- ⬜ **HIGH PRIORITY** - Attach images to prompts
-- ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
-- ⬜ Mobile friendly
-- ⬜ Together Integration
-- ⬜ Azure Open AI API Integration
-- ⬜ Perplexity Integration
-- ⬜ Vertex AI Integration
-- ⬜ Deploy directly to Vercel/Netlify/other similar platforms
-- ⬜ Prompt caching
-- ⬜ Better prompt enhancing
-- ⬜ Have LLM plan the project in a MD file for better results/transparency
-- ⬜ VSCode Integration with git-like confirmations
-- ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
-- ⬜ Voice prompting
+[Please check out our dedicated page for requesed additions here!](Requested.md)
 
 # Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 
@@ -126,53 +89,7 @@ VITE_LOG_LEVEL=debug
 
 **Important**: Never commit your `.env.local` file to version control. It's already included in .gitignore.
 
-## Run with Docker
-
-Prerequisites:
-
-Git and Node.js as mentioned above, as well as Docker: https://www.docker.com/
-
-### 1a. Using Helper Scripts
-
-NPM scripts are provided for convenient building:
-
-```bash
-# Development build
-npm run dockerbuild
-
-# Production build
-npm run dockerbuild:prod
-```
-
-### 1b. Direct Docker Build Commands (alternative to using NPM scripts)
-
-You can use Docker's target feature to specify the build environment instead of using NPM scripts if you wish:
-
-```bash
-# Development build
-docker build . --target bolt-ai-development
-
-# Production build
-docker build . --target bolt-ai-production
-```
-
-### 2. Docker Compose with Profiles to Run the Container
-
-Use Docker Compose profiles to manage different environments:
-
-```bash
-# Development environment
-docker-compose --profile development up
-
-# Production environment
-docker-compose --profile production up
-```
-
-When you run the Docker Compose command with the development profile, any changes you
-make on your machine to the code will automatically be reflected in the site running
-on the container (i.e. hot reloading still applies!).
-
-## Run Without Docker
+## Run
 
 1. Install dependencies using Terminal (or CMD in Windows with admin permissions):
 
@@ -191,31 +108,6 @@ sudo npm install -g pnpm
 ```bash
 pnpm run dev
 ```
-
-## Super Important Note on Running Ollama Models
-
-Ollama models by default only have 2048 tokens for their context window. Even for large models that can easily handle way more.
-This is not a large enough window to handle the Bolt.new/oTToDev prompt! You have to create a version of any model you want
-to use where you specify a larger context window. Luckily it's super easy to do that.
-
-All you have to do is:
-
-- Create a file called "Modelfile" (no file extension) anywhere on your computer
-- Put in the two lines:
-
-```
-FROM [Ollama model ID such as qwen2.5-coder:7b]
-PARAMETER num_ctx 32768
-```
-
-- Run the command: 
-
-```
-ollama create -f Modelfile [your new model ID, can be whatever you want (example: qwen2.5-coder-extra-ctx:7b)]
-```
-
-Now you have a new Ollama model that isn't heavily limited in the context length like Ollama models are by default for some reason.
-You'll see this new model in the list of Ollama models along with all the others you pulled!
 
 ## Adding New LLMs:
 
@@ -246,17 +138,13 @@ pnpm run dev
 
 This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
-## FAQ
+### Run With Docker
 
-### How do I get the best results with oTToDev?
+[Please check out our dedicated page for running oTToDev in docker here!](Docker.md)
 
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
+### FAQ
 
-- **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
-
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps oTToDev understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
-
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
+[Please check out our dedicated page for FAQ's for oTToDev here!](FAQ.md)
 
 ### How do I contribute to oTToDev?
 
@@ -271,30 +159,3 @@ More news coming on this coming early next month - stay tuned!
 [Check out our Roadmap here!](https://roadmap.sh/r/ottodev-roadmap-2ovzo)
 
 Lot more updates to this roadmap coming soon!
-
-### Why are there so many open issues/pull requests?
-
-oTToDev was started simply to showcase how to edit an open source project and to do something cool with local LLMs on my (@ColeMedin) YouTube channel! However, it quickly
-grew into a massive community project that I am working hard to keep up with the demand of by forming a team of maintainers and getting as many people involved as I can.
-That effort is going well and all of our maintainers are ABSOLUTE rockstars, but it still takes time to organize everything so we can efficiently get through all
-the issues and PRs. But rest assured, we are working hard and even working on some partnerships behind the scenes to really help this project take off!
-
-### How do local LLMs fair compared to larger models like Claude 3.5 Sonnet for oTToDev/Bolt.new?
-
-As much as the gap is quickly closing between open source and massive close source models, you’re still going to get the best results with the very large models like GPT-4o, Claude 3.5 Sonnet, and DeepSeek Coder V2 236b. This is one of the big tasks we have at hand - figuring out how to prompt better, use agents, and improve the platform as a whole to make it work better for even the smaller local LLMs!
-
-### I'm getting the error: "There was an error processing this request"
-
-If you see this error within oTToDev, that is just the application telling you there is a problem at a high level, and this could mean a number of different things. To find the actual error, please check BOTH the terminal where you started the application (with Docker or pnpm) and the developer console in the browser. For most browsers, you can access the developer console by pressing F12 or right clicking anywhere in the browser and selecting “Inspect”. Then go to the “console” tab in the top right.
-
-### I'm getting the error: "x-api-key header missing"
-
-We have seen this error a couple times and for some reason just restarting the Docker container has fixed it. This seems to be Ollama specific. Another thing to try is try to run oTToDev with Docker or pnpm, whichever you didn’t run first. We are still on the hunt for why this happens once and a while!
-
-### I'm getting a blank preview when oTToDev runs my app!
-
-We promise you that we are constantly testing new PRs coming into oTToDev and the preview is core functionality, so the application is not broken! When you get a blank preview or don’t get a preview, this is generally because the LLM hallucinated bad code or incorrect commands. We are working on making this more transparent so it is obvious. Sometimes the error will appear in developer console too so check that as well.
-
-### Everything works but the results are bad
-
-This goes to the point above about how local LLMs are getting very powerful but you still are going to see better (sometimes much better) results with the largest LLMs like GPT-4o, Claude 3.5 Sonnet, and DeepSeek Coder V2 236b. If you are using smaller LLMs like Qwen-2.5-Coder, consider it more experimental and educational at this point. It can build smaller applications really well, which is super impressive for a local LLM, but for larger scale applications you want to use the larger LLMs still!

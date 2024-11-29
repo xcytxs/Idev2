@@ -1,6 +1,6 @@
-# Contributing to oTToDev
+[![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
 
-First off, thank you for considering contributing to oTToDev! This fork aims to expand the capabilities of the original project by integrating multiple LLM providers and enhancing functionality. Every contribution helps make oTToDev a better tool for developers worldwide.
+# Bolt.new Fork by Cole Medin - oTToDev
 
 ## 📋 Table of Contents
 - [Code of Conduct](#code-of-conduct)
