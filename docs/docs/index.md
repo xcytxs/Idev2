@@ -1,16 +1,11 @@
-[![Bolt.new: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.new)
-
-# Bolt.new Fork by Cole Medin - oTToDev
-
+# Welcome to OTTO Dev
 This fork of Bolt.new (oTToDev) allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
+Join the community for oTToDev!
 
-## Join the community for oTToDev!
+https://thinktank.ottomator.ai
 
-[Please join our community here to stay update with the latest!](https://thinktank.ottomator.ai)
-
-## Bolt.new: AI-Powered Full-Stack Web Development in the Browser
-
+## Whats Bolt.new
 
 Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
 
@@ -31,7 +26,7 @@ Whether you’re an experienced developer, a PM, or a designer, Bolt.new allows 
 
 For developers interested in building their own AI-powered development tools with WebContainers, check out the open-source Bolt codebase in this repo!
 
-## Prerequisites
+## Setup
 
 Many of you are new users to installing software from Github. If you have any installation troubles reach out and submit an "issue" using the links above, or feel free to enhance this documentation by forking, editing the instructions, and doing a pull request.
 
@@ -49,15 +44,15 @@ echo $PATH .
 
 If you see usr/local/bin in the output then you're good to go.
 
-## Setup
-
-1. Clone the repository (if you haven't already) by opening a Terminal window (or CMD with admin permissions) and then typing in this:
+3. Clone the repository (if you haven't already) by opening a Terminal window (or CMD with admin permissions) and then typing in this:
 
 ```
 git clone https://github.com/coleam00/bolt.new-any-llm.git
 ```
 
-2. Rename .env.example to .env.local and add your LLM API keys. You will find this file on a Mac at "[your name]/bold.new-any-llm/.env.example". For Windows and Linux the path will be similar.
+3. Rename .env.example to .env.local and add your LLM API keys. You will find this file on a Mac at "[your name]/bold.new-any-llm/.env.example". For Windows and Linux the path will be similar.
+
+![image](https://github.com/user-attachments/assets/7e6a532c-2268-401f-8310-e8d20c731328)
 
 If you can't see the file indicated above, its likely you can't view hidden files. On Mac, open a Terminal window and enter this command below. On Windows, you will see the hidden files option in File Explorer Settings. A quick Google search will help you if you are stuck here.
 
@@ -87,7 +82,53 @@ VITE_LOG_LEVEL=debug
 
 **Important**: Never commit your `.env.local` file to version control. It's already included in .gitignore.
 
-## Run
+## Run with Docker
+
+Prerequisites:
+
+Git and Node.js as mentioned above, as well as Docker: https://www.docker.com/
+
+### 1a. Using Helper Scripts
+
+NPM scripts are provided for convenient building:
+
+```bash
+# Development build
+npm run dockerbuild
+
+# Production build
+npm run dockerbuild:prod
+```
+
+### 1b. Direct Docker Build Commands (alternative to using NPM scripts)
+
+You can use Docker's target feature to specify the build environment instead of using NPM scripts if you wish:
+
+```bash
+# Development build
+docker build . --target bolt-ai-development
+
+# Production build
+docker build . --target bolt-ai-production
+```
+
+### 2. Docker Compose with Profiles to Run the Container
+
+Use Docker Compose profiles to manage different environments:
+
+```bash
+# Development environment
+docker-compose --profile development up
+
+# Production environment
+docker-compose --profile production up
+```
+
+When you run the Docker Compose command with the development profile, any changes you
+make on your machine to the code will automatically be reflected in the site running
+on the container (i.e. hot reloading still applies!).
+
+## Run Without Docker
 
 1. Install dependencies using Terminal (or CMD in Windows with admin permissions):
 
@@ -107,27 +148,38 @@ sudo npm install -g pnpm
 pnpm run dev
 ```
 
-## Development
+## Super Important Note on Running Ollama Models
 
-To start the development server:
+Ollama models by default only have 2048 tokens for their context window. Even for large models that can easily handle way more.
+This is not a large enough window to handle the Bolt.new/oTToDev prompt! You have to create a version of any model you want
+to use where you specify a larger context window. Luckily it's super easy to do that.
 
-```bash
-pnpm run dev
+All you have to do is:
+
+- Create a file called "Modelfile" (no file extension) anywhere on your computer
+- Put in the two lines:
+
+```
+FROM [Ollama model ID such as qwen2.5-coder:7b]
+PARAMETER num_ctx 32768
 ```
 
-This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+- Run the command: 
 
-### Run With Docker
+```
+ollama create -f Modelfile [your new model ID, can be whatever you want (example: qwen2.5-coder-extra-ctx:7b)]
+```
 
-[Please check out our dedicated page for running oTToDev in docker here!](Docker.md)
-
-### How do I contribute to oTToDev?
-
-[Please check out our dedicated page for contributing to oTToDev here!](CONTRIBUTING.md)
+Now you have a new Ollama model that isn't heavily limited in the context length like Ollama models are by default for some reason.
+You'll see this new model in the list of Ollama models along with all the others you pulled!
 
 ## Adding New LLMs:
 
-[Please check out our dedicated page for adding LLM's to oTToDev here!](Adding-LLMs.md)
+To make new LLMs available to use in this version of Bolt.new, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider. 
+
+By default, Anthropic, OpenAI, Groq, and Ollama are implemented as providers, but the YouTube video for this repo covers how to extend this to work with more providers if you wish!
+
+When you add a new model to the MODEL_LIST array, it will immediately be available to use when you run the app locally or reload it. For Ollama models, make sure you have the model installed already before trying to use it here!
 
 ## Available Scripts
 
@@ -140,20 +192,24 @@ This will start the Remix Vite development server. You will need Google Chrome C
 - `pnpm run typegen`: Generates TypeScript types using Wrangler.
 - `pnpm run deploy`: Builds the project and deploys it to Cloudflare Pages.
 
-### How do I get the best results with oTToDev?
+## Development
+
+To start the development server:
+
+```bash
+pnpm run dev
+```
+
+This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+
+## Tips and Tricks
+
+Here are some tips to get the most out of Bolt.new:
 
 - **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
 
 - **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
 
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps oTToDev understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
+- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
 
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
-
-### Requested Additions - Feel Free to Contribute!!
-
-[Please check out our dedicated page for requesed additions here!](Requested.md)
-
-### FAQ
-
-[Please check out our dedicated page for FAQ's for oTToDev here!](FAQ.md)
+- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
