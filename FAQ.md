@@ -4,20 +4,6 @@
 
 ## FAQ
 
-### How do I get the best results with oTToDev?
-
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
-
-- **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
-
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps oTToDev understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
-
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
-
-### How do I contribute to oTToDev?
-
-[Please check out our dedicated page for contributing to oTToDev here!](CONTRIBUTING.md)
-
 ### Do you plan on merging oTToDev back into the official Bolt.new repo?
 
 More news coming on this coming early next month - stay tuned!

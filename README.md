@@ -138,6 +138,20 @@ This will start the Remix Vite development server. You will need Google Chrome C
 
 [Please check out our dedicated page for running oTToDev in docker here!](Docker.md)
 
+### How do I contribute to oTToDev?
+
+[Please check out our dedicated page for contributing to oTToDev here!](CONTRIBUTING.md)
+
+### How do I get the best results with oTToDev?
+
+- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
+
+- **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
+
+- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps oTToDev understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
+
+- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
+
 ### Requested Additions - Feel Free to Contribute!!
 
 [Please check out our dedicated page for requesed additions here!](Requested.md)
@@ -145,17 +159,3 @@ This will start the Remix Vite development server. You will need Google Chrome C
 ### FAQ
 
 [Please check out our dedicated page for FAQ's for oTToDev here!](FAQ.md)
-
-### How do I contribute to oTToDev?
-
-[Please check out our dedicated page for contributing to oTToDev here!](CONTRIBUTING.md)
-
-### Do you plan on merging oTToDev back into the official Bolt.new repo?
-
-More news coming on this coming early next month - stay tuned!
-
-### What are the future plans for oTToDev?
-
-[Check out our Roadmap here!](https://roadmap.sh/r/ottodev-roadmap-2ovzo)
-
-Lot more updates to this roadmap coming soon!
