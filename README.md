@@ -18,7 +18,7 @@ oTToDev is a powerful fork of Bolt.new that enables you to choose from multiple 
 
 The platform is easily extendable to support any model compatible with the Vercel AI SDK!
 
-Join the community for oTToDev!
+## Join the community for oTToDev!
 
 https://thinktank.ottomator.ai
 
