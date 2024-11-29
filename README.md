@@ -141,7 +141,7 @@ VITE_LOG_LEVEL=debug
 
 **Important**: Never commit your `.env.local` file to version control. It's already included in .gitignore.
 
-## Run with Docker
+## 🐳 Run with Docker
 
 Prerequisites:
 
