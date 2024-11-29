@@ -18,11 +18,11 @@ oTToDev is a powerful fork of Bolt.new that enables you to choose from multiple 
 
 The platform is easily extendable to support any model compatible with the Vercel AI SDK!
 
-## Join the community for oTToDev!
+## 🤖 Join the community for oTToDev!
 
 https://thinktank.ottomator.ai
 
-# Requested Additions to this Fork - Feel Free to Contribute!!
+## 📚 Requested Additions to this Fork - Feel Free to Contribute!!
 
 - ✅ OpenRouter Integration (@coleam00)
 - ✅ Gemini Integration (@jonathands)
@@ -63,11 +63,11 @@ https://thinktank.ottomator.ai
 - ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
 - ⬜ Voice prompting
 
-# Bolt.new: AI-Powered Full-Stack Web Development in the Browser
+## 📝 Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 
 Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
 
-## What Makes Bolt.new Different
+## ⚡ What Makes Bolt.new Different
 
 Claude, v0, etc are incredible- but you can't install packages, run backends, or edit code. That’s where Bolt.new stands out:
 
@@ -84,7 +84,7 @@ Whether you’re an experienced developer, a PM, or a designer, Bolt.new allows 
 
 For developers interested in building their own AI-powered development tools with WebContainers, check out the open-source Bolt codebase in this repo!
 
-## Setup
+## 🛠️ Setup
 
 Many of you are new users to installing software from Github. If you have any installation troubles reach out and submit an "issue" using the links above, or feel free to enhance this documentation by forking, editing the instructions, and doing a pull request.
 
@@ -99,16 +99,17 @@ On all operating systems, the path to Node.js should automatically be added to y
 ```
 echo $PATH .
 ```
+## 💻 Installation
 
 If you see usr/local/bin in the output then you're good to go.
 
-3. Clone the repository (if you haven't already) by opening a Terminal window (or CMD with admin permissions) and then typing in this:
+1. Clone the repository (if you haven't already) by opening a Terminal window (or CMD with admin permissions) and then typing in this:
 
 ```
 git clone https://github.com/coleam00/bolt.new-any-llm.git
 ```
 
-3. Rename .env.example to .env.local and add your LLM API keys. You will find this file on a Mac at "[your name]/bold.new-any-llm/.env.example". For Windows and Linux the path will be similar.
+2. Rename .env.example to .env.local and add your LLM API keys. You will find this file on a Mac at "[your name]/bold.new-any-llm/.env.example". For Windows and Linux the path will be similar.
 
 ![image](https://github.com/user-attachments/assets/7e6a532c-2268-401f-8310-e8d20c731328)
 
@@ -205,7 +206,7 @@ sudo npm install -g pnpm
 ```bash
 pnpm run dev
 ```
-## Adding New LLMs:
+## 🔧 Adding New LLMs:
 
 To make new LLMs available to use in this version of Bolt.new, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider. 
 
@@ -224,7 +225,7 @@ When you add a new model to the MODEL_LIST array, it will immediately be availab
 - `pnpm run typegen`: Generates TypeScript types using Wrangler.
 - `pnpm run deploy`: Builds the project and deploys it to Cloudflare Pages.
 
-## Development
+## 🚀 Development
 
 To start the development server:
 
@@ -234,7 +235,7 @@ pnpm run dev
 
 This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
-## FAQ
+## 🤔 FAQ
 
 ### How do I get the best results with oTToDev?
 
@@ -246,9 +247,9 @@ This will start the Remix Vite development server. You will need Google Chrome C
 
 - **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask oTToDev to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
 
-### How do I contribute to oTToDev?
+## 🤝 Contributing
 
-[Please check out our dedicated page for contributing to oTToDev here!](CONTRIBUTING.md)
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
 
 ### Do you plan on merging oTToDev back into the official Bolt.new repo?
 
@@ -286,3 +287,7 @@ We promise you that we are constantly testing new PRs coming into oTToDev and th
 ### Everything works but the results are bad
 
 This goes to the point above about how local LLMs are getting very powerful but you still are going to see better (sometimes much better) results with the largest LLMs like GPT-4o, Claude 3.5 Sonnet, and DeepSeek Coder V2 236b. If you are using smaller LLMs like Qwen-2.5-Coder, consider it more experimental and educational at this point. It can build smaller applications really well, which is super impressive for a local LLM, but for larger scale applications you want to use the larger LLMs still!
+
+---
+
+Built with ❤️ by the oTToDev community
