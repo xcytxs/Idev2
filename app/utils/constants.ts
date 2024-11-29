@@ -320,7 +320,10 @@ async function getOpenAILikeModels(): Promise<ModelInfo[]> {
     });
     const res = (await response.json()) as any;
 
-    return res.data.map((model: any) => ({
+    // When using the OpenAI-compatible endpoint from Exo, the data is not at `res.data` but `res` directly.
+    const d = res.data ? res.data : res;
+
+    return d.map((model: any) => ({
       name: model.id,
       label: model.id,
       provider: 'OpenAILike',
