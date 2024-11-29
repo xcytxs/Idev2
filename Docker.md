@@ -6,7 +6,7 @@
 
 Prerequisites:
 
-Git and Node.js as mentioned above, as well as Docker: https://www.docker.com/
+Git and Node.js as mentioned in our [README](README.md), as well as Docker: https://www.docker.com/
 
 ### 1a. Using Helper Scripts
 
