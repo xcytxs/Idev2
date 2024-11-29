@@ -187,7 +187,7 @@ When you run the Docker Compose command with the development profile, any change
 make on your machine to the code will automatically be reflected in the site running
 on the container (i.e. hot reloading still applies!).
 
-## Run Without Docker
+## 📥 Run Without Docker
 
 1. Install dependencies using Terminal (or CMD in Windows with admin permissions):
 
