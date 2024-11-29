@@ -8,10 +8,6 @@ Join the community for oTToDev!
 
 [Please join our community here to stay update with the latest!](https://thinktank.ottomator.ai)
 
-# Requested Additions - Feel Free to Contribute!!
-
-[Please check out our dedicated page for requesed additions here!](Requested.md)
-
 # Bolt.new: AI-Powered Full-Stack Web Development in the Browser
 
 Bolt.new is an AI-powered web development agent that allows you to prompt, run, edit, and deploy full-stack applications directly from your browser—no local setup required. If you're here to build your own AI-powered web dev agent using the Bolt open source codebase, [click here to get started!](./CONTRIBUTING.md)
@@ -141,6 +137,10 @@ This will start the Remix Vite development server. You will need Google Chrome C
 ### Run With Docker
 
 [Please check out our dedicated page for running oTToDev in docker here!](Docker.md)
+
+### Requested Additions - Feel Free to Contribute!!
+
+[Please check out our dedicated page for requesed additions here!](Requested.md)
 
 ### FAQ
 
