@@ -18,7 +18,7 @@ export function UserMessage({ content }: UserMessageProps) {
 
   return (
     <div className="overflow-hidden">
-      {modelInfo && <p className='dark:text-zinc-500 text-xs mb-1'>{modelInfo}</p>}
+      {modelInfo && <p className="text-zinc-500 text-xs mb-1">{modelInfo}</p>}
       <Markdown limitedMarkdown>{sanitizedContent}</Markdown>
     </div>
   );

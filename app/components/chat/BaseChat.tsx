@@ -272,7 +272,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </ClientOnly>
               <div
                 className={classNames(
-                  'dark:bg-neutral-900/90 backdrop-blur-md p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mb-6 relative',
+                  'dark:bg-neutral-900/90 bg-neutral-50/85 backdrop-blur-md p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mb-6 relative',
                   {
                     'sticky bottom-2': chatStarted,
                   },
