@@ -1,4 +1,4 @@
-import type { ModelInfo, OllamaApiResponse, OllamaModel } from './types';
+import type { ModelInfo, OllamaApiResponse, OllamaModel, NovitaModelsResponse } from './types';
 import type { ProviderInfo } from '~/types/model';
 
 export const WORK_DIR_NAME = 'project';
@@ -259,6 +259,33 @@ const PROVIDER_LIST: ProviderInfo[] = [
     labelForGetApiKey: 'Get LMStudio',
     icon: 'i-ph:cloud-arrow-down',
   },
+  {
+    name: 'NovitaAI',
+    staticModels: [],
+    getDynamicModels: getNovitaModels,
+    getApiKeyLink: 'https://novita.ai/settings/api-keys',
+  },
+  {
+    name: 'TogetherAI',
+    staticModels: [
+      {
+        name: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
+        label: 'Qwen2.5-72B-Instruct-Turbo',
+        provider: 'TogetherAI',
+        maxTokenAllowed: 1000,
+      },
+      {
+        name: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+        label: 'Llama 3.1 8B Instruct Turbo',
+        provider: 'TogetherAI',
+        maxTokenAllowed: 1000,
+      },
+    ],
+  },
+  {
+    name: 'Azure',
+    staticModels: [{ name: 'gpt-4o', label: 'gpt-4o (resource:key)', provider: 'Azure', maxTokenAllowed: 1000 }],
+  },
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
@@ -283,9 +310,11 @@ const getOllamaBaseUrl = () => {
 };
 
 async function getOllamaModels(): Promise<ModelInfo[]> {
-  //if (typeof window === 'undefined') {
-    //return [];
-  //}
+  /*
+   * if (typeof window === 'undefined') {
+   * return [];
+   * }
+   */
 
   try {
     const baseUrl = getOllamaBaseUrl();
@@ -370,8 +399,8 @@ async function getLMStudioModels(): Promise<ModelInfo[]> {
   }
 
   try {
-    const baseUrl = import.meta.env.LMSTUDIO_API_BASE_URL || 'http://localhost:1234';
-    const response = await fetch(`${baseUrl}/v1/models`);
+    const baseUrl = import.meta.env.LMSTUDIO_API_BASE_URL || 'http://localhost:5173';
+    const response = await fetch(`${baseUrl}/lmstudio-api`);
     const data = (await response.json()) as any;
 
     return data.data.map((model: any) => ({
@@ -399,11 +428,34 @@ async function initializeModelList(): Promise<ModelInfo[]> {
   return MODEL_LIST;
 }
 
+async function getNovitaModels(): Promise<ModelInfo[]> {
+  try {
+    const response = await fetch(import.meta.env.VITE_APP_BASE_URL + '/novita-api', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const body: NovitaModelsResponse = await response.json();
+    const data = body;
+
+    return data.data.map((m) => ({
+      name: m.id,
+      label: m.title,
+      provider: 'NovitaAI',
+      maxTokenAllowed: m.context_size,
+    }));
+  } catch (e) {
+    console.error('Error fetching Novita models:', e);
+    return [];
+  }
+}
+
 export {
   getOllamaModels,
   getOpenAILikeModels,
   getLMStudioModels,
   initializeModelList,
   getOpenRouterModels,
+  getNovitaModels,
   PROVIDER_LIST,
 };
