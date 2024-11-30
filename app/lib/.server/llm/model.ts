@@ -11,6 +11,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
 import type { LanguageModelV1 } from 'ai';
+import { createVertex } from '@ai-sdk/google-vertex';
 
 export const DEFAULT_NUM_CTX = process.env.DEFAULT_NUM_CTX ? parseInt(process.env.DEFAULT_NUM_CTX, 10) : 32768;
 
@@ -32,13 +33,10 @@ export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, mode
   return openai(model);
 }
 
-export function getCohereAIModel(apiKey: OptionalApiKey, model: string) {
-  const cohere = createCohere({
-    apiKey,
-  });
-
-  return cohere(model);
-}
+const vertexClient = createVertex({
+  project: process.env.GOOGLE_CLOUD_PROJECT_ID,
+  location: process.env.GOOGLE_CLOUD_LOCATION,
+});
 
 export function getOpenAIModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
@@ -127,6 +125,13 @@ export function getXAIModel(apiKey: OptionalApiKey, model: string) {
   return openai(model);
 }
 
+export function getCohereAIModel(apiKey: OptionalApiKey, model: string) {
+  const cohere = createCohere({
+    apiKey,
+  });
+  return cohere(model);
+}
+
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {
   const apiKey = getAPIKey(env, provider, apiKeys);
   const baseURL = getBaseURL(env, provider);
@@ -144,6 +149,11 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getOpenRouterModel(apiKey, model);
     case 'Google':
       return getGoogleModel(apiKey, model);
+    case 'Vertex':
+      return createVertex({
+        project: process.env.GOOGLE_CLOUD_PROJECT_ID,
+        location: process.env.GOOGLE_CLOUD_LOCATION,
+      })(model);
     case 'OpenAILike':
       return getOpenAILikeModel(baseURL, apiKey, model);
     case 'Deepseek':
@@ -159,4 +169,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
     default:
       return getOllamaModel(baseURL, model);
   }
+}
+
+export function getVertexAIModel(model: string) {
+  return vertexClient(model);
 }
