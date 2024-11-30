@@ -100,6 +100,9 @@ export class ActionRunner {
       .catch((error) => {
         console.error('Action failed:', error);
       });
+
+    // eslint-disable-next-line consistent-return
+    return this.#currentExecutionPromise;
   }
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
