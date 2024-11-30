@@ -210,7 +210,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="flex justify-between items-center mb-2">
                     <button
                       onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-bolt-elements-background-depth-2 transition-all text-bolt-elements-textPrimary"
+                      className={classNames('flex items-center gap-2 p-2 rounded-lg transition-all', {
+                        'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+                          isModelSettingsCollapsed,
+                        'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
+                          !isModelSettingsCollapsed,
+                      })}
                     >
                       <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
                       <span>Model Settings</span>
