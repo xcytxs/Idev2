@@ -9,6 +9,16 @@
 
 html,
 body {
+  font-family: 'Inter';
   height: 100%;
   width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(25, 38, 79, 0.478);
+  border-radius: 4px;
 }
