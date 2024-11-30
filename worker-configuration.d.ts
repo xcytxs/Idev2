@@ -3,6 +3,9 @@ interface Env {
   OPENAI_API_KEY: string;
   GROQ_API_KEY: string;
   HuggingFace_API_KEY: string;
+  GOOGLE_APPLICATION_CREDENTIALS: string;
+  GOOGLE_CLOUD_PROJECT_ID: string;
+  GOOGLE_CLOUD_LOCATION: string;
   OPEN_ROUTER_API_KEY: string;
   OLLAMA_API_BASE_URL: string;
   OPENAI_LIKE_API_KEY: string;

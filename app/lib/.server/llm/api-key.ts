@@ -23,6 +23,8 @@ export function getAPIKey(cloudflareEnv: Env, provider: string, userApiKeys?: Re
       return env.OPENAI_API_KEY || cloudflareEnv.OPENAI_API_KEY;
     case 'Google':
       return env.GOOGLE_GENERATIVE_AI_API_KEY || cloudflareEnv.GOOGLE_GENERATIVE_AI_API_KEY;
+    case 'Vertex':
+      return env.GOOGLE_APPLICATION_CREDENTIALS || cloudflareEnv.GOOGLE_APPLICATION_CREDENTIALS;
     case 'Groq':
       return env.GROQ_API_KEY || cloudflareEnv.GROQ_API_KEY;
     case 'HuggingFace':

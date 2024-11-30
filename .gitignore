@@ -36,3 +36,9 @@ modelfiles
 
 # docs ignore
 site
+
+# build ignore
+build
+
+#credentials
+credentials.json

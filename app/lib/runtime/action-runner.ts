@@ -75,20 +75,12 @@ export class ActionRunner {
     });
   }
 
-  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
-    const { actionId } = data;
+  async runAction(data: ActionCallbackData, isStreaming: boolean = false): Promise<void> {
+    const actionId = data.actionId;
     const action = this.actions.get()[actionId];
 
     if (!action) {
-      unreachable(`Action ${actionId} not found`);
-    }
-
-    if (action.executed) {
-      return;
-    }
-
-    if (isStreaming && action.type !== 'file') {
-      return;
+      return Promise.resolve();
     }
 
     this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming });
@@ -100,7 +92,8 @@ export class ActionRunner {
       .catch((error) => {
         console.error('Action failed:', error);
       });
-      return this.#currentExecutionPromise;
+
+    return this.#currentExecutionPromise;
   }
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {

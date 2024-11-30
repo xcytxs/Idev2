@@ -259,6 +259,24 @@ const PROVIDER_LIST: ProviderInfo[] = [
     labelForGetApiKey: 'Get LMStudio',
     icon: 'i-ph:cloud-arrow-down',
   },
+  {
+    name: 'Vertex',
+    staticModels: [
+      {
+        name: 'gemini-1.5-pro',
+        label: 'Gemini 1.5 Pro (Vertex AI)',
+        provider: 'Vertex',
+        maxTokenAllowed: 8192,
+      },
+      {
+        name: 'gemini-1.5-flash',
+        label: 'Gemini 1.5 Flash (Vertex AI)',
+        provider: 'Vertex',
+        maxTokenAllowed: 8192,
+      },
+    ],
+    getApiKeyLink: 'https://console.cloud.google.com/apis/credentials',
+  },
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
@@ -283,9 +301,11 @@ const getOllamaBaseUrl = () => {
 };
 
 async function getOllamaModels(): Promise<ModelInfo[]> {
-  //if (typeof window === 'undefined') {
-    //return [];
-  //}
+  /*
+   * if (typeof window === 'undefined') {
+   * return [];
+   * }
+   */
 
   try {
     const baseUrl = getOllamaBaseUrl();
@@ -399,11 +419,41 @@ async function initializeModelList(): Promise<ModelInfo[]> {
   return MODEL_LIST;
 }
 
+async function getVertexModels(): Promise<ModelInfo[]> {
+  return [
+    {
+      name: 'gemini-1.5-pro',
+      label: 'Gemini 1.5 Pro (Vertex AI)',
+      provider: 'Vertex',
+      maxTokenAllowed: 8192,
+    },
+    {
+      name: 'gemini-1.5-flash',
+      label: 'Gemini 1.5 Flash (Vertex AI)',
+      provider: 'Vertex',
+      maxTokenAllowed: 8192,
+    },
+    {
+      name: 'gemini-1.5-flash-002',
+      label: 'Gemini 1.5 Flash-002 (Vertex AI)',
+      provider: 'Vertex',
+      maxTokenAllowed: 8192,
+    },
+    {
+      name: 'gemini-1.5-pro-002',
+      label: 'Gemini 1.5 Pro-002 (Vertex AI)',
+      provider: 'Vertex',
+      maxTokenAllowed: 8192,
+    },
+  ];
+}
+
 export {
   getOllamaModels,
   getOpenAILikeModels,
   getLMStudioModels,
   initializeModelList,
   getOpenRouterModels,
+  getVertexModels,
   PROVIDER_LIST,
 };
