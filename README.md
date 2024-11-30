@@ -124,6 +124,15 @@ Optionally, you can set the debug level:
 VITE_LOG_LEVEL=debug
 ```
 
+And if using Ollama set the DEFAULT_NUM_CTX, the example below uses 8K context and ollama running on localhost port 11434:
+
+```
+OLLAMA_API_BASE_URL=http://localhost:11434
+DEFAULT_NUM_CTX=8192
+```
+
+First off, thank you for considering contributing to Bolt.new! This fork aims to expand the capabilities of the original project by integrating multiple LLM providers and enhancing functionality. Every contribution helps make Bolt.new a better tool for developers worldwide.
+
 **Important**: Never commit your `.env.local` file to version control. It's already included in .gitignore.
 
 ## Run with Docker
@@ -191,31 +200,6 @@ sudo npm install -g pnpm
 ```bash
 pnpm run dev
 ```
-
-## Super Important Note on Running Ollama Models
-
-Ollama models by default only have 2048 tokens for their context window. Even for large models that can easily handle way more.
-This is not a large enough window to handle the Bolt.new/oTToDev prompt! You have to create a version of any model you want
-to use where you specify a larger context window. Luckily it's super easy to do that.
-
-All you have to do is:
-
-- Create a file called "Modelfile" (no file extension) anywhere on your computer
-- Put in the two lines:
-
-```
-FROM [Ollama model ID such as qwen2.5-coder:7b]
-PARAMETER num_ctx 32768
-```
-
-- Run the command: 
-
-```
-ollama create -f Modelfile [your new model ID, can be whatever you want (example: qwen2.5-coder-extra-ctx:7b)]
-```
-
-Now you have a new Ollama model that isn't heavily limited in the context length like Ollama models are by default for some reason.
-You'll see this new model in the list of Ollama models along with all the others you pulled!
 
 ## Adding New LLMs:
 
