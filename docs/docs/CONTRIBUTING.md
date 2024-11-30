@@ -13,6 +13,7 @@ First off, thank you for considering contributing to Bolt.new! This fork aims to
 - [Coding Standards](#coding-standards)
 - [Development Setup](#development-setup)
 - [Deploymnt with Docker](#docker-deployment-documentation)
+- [Model Providers](#model-providers)
 
 ## Code of Conduct
 
@@ -124,7 +125,64 @@ pnpm run deploy
 
 Make sure you have the necessary permissions and Wrangler is correctly configured for your Cloudflare account.
 
-# Docker Deployment Documentation
+## Model Providers
+
+### GitHub Models Provider by @ThePsyberSleuth
+
+The GitHub Models provider integrates a comprehensive suite of AI models through Azure ML endpoints, offering access to cutting-edge models from various providers. This integration enables developers to leverage powerful language models while maintaining compatibility with existing OpenAI-style interfaces.
+
+#### Setup Requirements
+
+1. Obtain a GitHub API Key from https://github.com/settings/tokens
+2. Add the key to your `.env.local`:
+   ```bash
+   GITHUB_API_KEY=your_key_here
+   ```
+
+#### Available Models
+
+1. O1 Series
+   - O1 Preview (Latest cutting-edge model)
+   - O1 Mini (Efficient, smaller model)
+
+2. Meta Llama Series
+   - Llama 3.1 405B Instruct
+   - Llama 3.1 70B Instruct
+   - Llama 3.1 8B Instruct
+
+3. Mistral Series
+   - Mistral Large
+   - Mistral Medium
+   - Mistral Small
+
+4. GPT-4O Series
+   - GPT-4O Advanced
+   - GPT-4O Standard
+
+5. Phi Series
+   - Phi-2
+   - Phi-1.5
+
+#### Usage Example
+
+```typescript
+// Initialize the model
+const model = getModel('GitHub Models', 'mistral-large', env);
+
+// Use the model
+const response = await model.chat([
+  { role: 'system', content: 'You are a helpful AI assistant.' },
+  { role: 'user', content: 'Hello!' }
+]);
+```
+
+#### Configuration Options
+
+- Context Window: Configurable through `DEFAULT_NUM_CTX`
+- Temperature: Adjustable per request
+- Response Format: Supports both streaming and non-streaming responses
+
+## Docker Deployment Documentation
 
 This guide outlines various methods for building and deploying the application using Docker.
 

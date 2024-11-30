@@ -259,6 +259,175 @@ const PROVIDER_LIST: ProviderInfo[] = [
     labelForGetApiKey: 'Get LMStudio',
     icon: 'i-ph:cloud-arrow-down',
   },
+  {
+    name: 'GitHub Models',
+    staticModels: [
+      {
+        name: 'o1-preview',
+        label: 'O1 Preview',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'o1-mini',
+        label: 'O1 Mini',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'gpt-4o',
+        label: 'GPT-4O',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'gpt-4o-mini',
+        label: 'GPT-4O Mini',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'meta-llama-3.1-405b-instruct',
+        label: 'Meta Llama 3.1 405B Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'meta-llama-3.1-70b-instruct',
+        label: 'Meta Llama 3.1 70B Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'meta-llama-3.1-8b-instruct',
+        label: 'Meta Llama 3.1 8B Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'llama-3.2-90b-vision-instruct',
+        label: 'Llama 3.2 90B Vision Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'llama-3.2-11b-vision-instruct',
+        label: 'Llama 3.2 11B Vision Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'mistral-large-2407',
+        label: 'Mistral Large 2407',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'mistral-large',
+        label: 'Mistral Large',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'mistral-small',
+        label: 'Mistral Small',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'mistral-nemo',
+        label: 'Mistral Nemo',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'ministral-3B',
+        label: 'Mistral: Ministral 3B',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'cohere-command-r-08-2024',
+        label: 'Cohere Command R 08-2024',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'cohere-command-r',
+        label: 'Cohere Command R',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'cohere-command-r-plus-08-2024',
+        label: 'Cohere Command R+ 08-2024',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'cohere-command-r-plus',
+        label: 'Cohere Command R+',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3.5-moe-instruct',
+        label: 'Phi 3.5 MoE Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3.5-vision-instruct',
+        label: 'Phi 3.5 Vision Instruct',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3.5-mini-instruct',
+        label: 'Phi-3.5-mini instruct (128k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-medium-128k-instruct',
+        label: 'Phi-3-medium instruct (128k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-medium-4k-instruct',
+        label: 'Phi-3-medium instruct (4k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-mini-128k-instruct',
+        label: 'Phi-3-mini instruct (128k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-mini-4k-instruct',
+        label: 'Phi-3-mini instruct (4k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-small-128k-instruct',
+        label: 'Phi-3-small instruct (128k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+      {
+        name: 'phi-3-small-8k-instruct',
+        label: 'Phi-3-small instruct (8k)',
+        provider: 'GitHub Models',
+        maxTokenAllowed: 8000,
+      },
+    ],
+    getApiKeyLink: 'https://github.com/settings/tokens',
+    labelForGetApiKey: 'Get GitHub API Token',
+  },
 ];
 
 export const DEFAULT_PROVIDER = PROVIDER_LIST[0];
@@ -283,9 +452,9 @@ const getOllamaBaseUrl = () => {
 };
 
 async function getOllamaModels(): Promise<ModelInfo[]> {
-  //if (typeof window === 'undefined') {
-    //return [];
-  //}
+  if (typeof window === 'undefined') {
+    return [];
+  }
 
   try {
     const baseUrl = getOllamaBaseUrl();

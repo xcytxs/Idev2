@@ -18,15 +18,16 @@ type OptionalApiKey = string | undefined;
 
 export function getAnthropicModel(apiKey: OptionalApiKey, model: string) {
   const anthropic = createAnthropic({
-    apiKey,
+    apiKey
   });
 
   return anthropic(model);
 }
+
 export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL,
-    apiKey,
+    apiKey
   });
 
   return openai(model);
@@ -34,7 +35,7 @@ export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, mode
 
 export function getCohereAIModel(apiKey: OptionalApiKey, model: string) {
   const cohere = createCohere({
-    apiKey,
+    apiKey
   });
 
   return cohere(model);
@@ -42,7 +43,7 @@ export function getCohereAIModel(apiKey: OptionalApiKey, model: string) {
 
 export function getOpenAIModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
-    apiKey,
+    apiKey
   });
 
   return openai(model);
@@ -50,7 +51,7 @@ export function getOpenAIModel(apiKey: OptionalApiKey, model: string) {
 
 export function getMistralModel(apiKey: OptionalApiKey, model: string) {
   const mistral = createMistral({
-    apiKey,
+    apiKey
   });
 
   return mistral(model);
@@ -58,7 +59,7 @@ export function getMistralModel(apiKey: OptionalApiKey, model: string) {
 
 export function getGoogleModel(apiKey: OptionalApiKey, model: string) {
   const google = createGoogleGenerativeAI({
-    apiKey,
+    apiKey
   });
 
   return google(model);
@@ -67,7 +68,7 @@ export function getGoogleModel(apiKey: OptionalApiKey, model: string) {
 export function getGroqModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL: 'https://api.groq.com/openai/v1',
-    apiKey,
+    apiKey
   });
 
   return openai(model);
@@ -76,7 +77,7 @@ export function getGroqModel(apiKey: OptionalApiKey, model: string) {
 export function getHuggingFaceModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL: 'https://api-inference.huggingface.co/v1/',
-    apiKey,
+    apiKey
   });
 
   return openai(model);
@@ -84,7 +85,7 @@ export function getHuggingFaceModel(apiKey: OptionalApiKey, model: string) {
 
 export function getOllamaModel(baseURL: string, model: string) {
   const ollamaInstance = ollama(model, {
-    numCtx: DEFAULT_NUM_CTX,
+    numCtx: DEFAULT_NUM_CTX
   }) as LanguageModelV1 & { config: any };
 
   ollamaInstance.config.baseURL = `${baseURL}/api`;
@@ -95,7 +96,7 @@ export function getOllamaModel(baseURL: string, model: string) {
 export function getDeepseekModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL: 'https://api.deepseek.com/beta',
-    apiKey,
+    apiKey
   });
 
   return openai(model);
@@ -103,7 +104,7 @@ export function getDeepseekModel(apiKey: OptionalApiKey, model: string) {
 
 export function getOpenRouterModel(apiKey: OptionalApiKey, model: string) {
   const openRouter = createOpenRouter({
-    apiKey,
+    apiKey
   });
 
   return openRouter.chat(model);
@@ -112,7 +113,7 @@ export function getOpenRouterModel(apiKey: OptionalApiKey, model: string) {
 export function getLMStudioModel(baseURL: string, model: string) {
   const lmstudio = createOpenAI({
     baseUrl: `${baseURL}/v1`,
-    apiKey: '',
+    apiKey: ''
   });
 
   return lmstudio(model);
@@ -121,7 +122,16 @@ export function getLMStudioModel(baseURL: string, model: string) {
 export function getXAIModel(apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL: 'https://api.x.ai/v1',
-    apiKey,
+    apiKey
+  });
+
+  return openai(model);
+}
+
+export function getGitHubModel(apiKey: OptionalApiKey, model: string) {
+  const openai = createOpenAI({
+    baseURL: 'https://models.inference.ai.azure.com',
+    apiKey
   });
 
   return openai(model);
@@ -156,6 +166,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getXAIModel(apiKey, model);
     case 'Cohere':
       return getCohereAIModel(apiKey, model);
+    case 'GitHub Models':
+      return getGitHubModel(apiKey, model);
     default:
       return getOllamaModel(baseURL, model);
   }
