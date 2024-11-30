@@ -128,8 +128,7 @@ export function getXAIModel(apiKey: OptionalApiKey, model: string) {
   return openai(model);
 }
 
-
-export function getNovitaModel(apiKey: string, model: string) {
+export function getNovitaModel(apiKey: OptionalApiKey, model: string) {
   const novita = createOpenAI({
     baseURL: 'https://api.novita.ai/v3/openai',
     apiKey,
@@ -138,8 +137,7 @@ export function getNovitaModel(apiKey: string, model: string) {
   return novita(model);
 }
 
-export function getTogetherAIModel(apiKey: string, model: string) {
-
+export function getTogetherAIModel(apiKey: OptionalApiKey, model: string) {
   const together = createOpenAI({
     baseURL: 'https://api.together.xyz/v1',
     apiKey,
@@ -147,16 +145,24 @@ export function getTogetherAIModel(apiKey: string, model: string) {
   return together(model);
 }
 
-export function getAzureAIModel(resourcekey: string, model: string){
-  if(resourcekey.split(":").length != 2)
-  {
-    console.error("azure requires resouce name and api key");
+export function getAzureAIModel(apiKey: OptionalApiKey, model: string) {
+  if (!apiKey) {
+    console.error('azure requires resouce name and api key');
+    return undefined;
   }
-  const azmodel = createAzure({
-    resourceName: resourcekey.split(':')[0],
-    apiKey: resourcekey.split(':')[1],
+
+  const resourceKey = apiKey.toString();
+
+  if (resourceKey.toString().split(':').length != 2) {
+    console.error('azure requires resouce name and api key');
+  }
+
+  const azModel = createAzure({
+    resourceName: resourceKey.split(':')[0],
+    apiKey: resourceKey.split(':')[1],
   });
-  return azmodel(model);
+
+  return azModel(model);
 }
 
 export function getModel(provider: string, model: string, env: Env, apiKeys?: Record<string, string>) {

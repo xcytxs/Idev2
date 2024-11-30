@@ -27,6 +27,22 @@ export default defineConfig((config) => {
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
+    server: {
+      proxy: {
+        '/novita-api': {
+          target: 'https://api.novita.ai/v3/openai/models',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/novita-api/, ''),
+        },
+        '/lmstudio-api': {
+          target: 'http://localhost:1234/v1/models',
+          changeOrigin: true,
+          rewrite: (path) => {
+            return path.replace(/^\/lmstudio-api/, '')
+          },
+        }
+      },
+    },
     envPrefix:["VITE_","OPENAI_LIKE_API_","OLLAMA_API_BASE_URL","LMSTUDIO_API_BASE_URL"],
     css: {
       preprocessorOptions: {
