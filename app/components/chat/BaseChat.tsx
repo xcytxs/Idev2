@@ -401,7 +401,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             {chatImportButton}
             {!chatStarted && (
               <div id="examples" className="relative w-full max-w-2xl mx-auto mt-6 flex justify-center">
-                <div className="flex flex-wrap items-center justify-center gap-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_200%)] hover:[mask-image:none] w-full">
+                <div className="flex flex-wrap items-center justify-center gap-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_400%)] hover:[mask-image:none] w-full border mb-12">
                   {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
                     return (
                       <button
@@ -409,7 +409,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         onClick={(event) => {
                           sendMessage?.(event, examplePrompt.text);
                         }}
-                        className="group flex items-center bg-gray-900 px-3 rounded-full  gap-2 justify-center text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme text-sm"
+                        className="group flex items-center bg-zinc-100 dark:bg-gray-900 px-3 rounded-full  gap-2 justify-center text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme text-sm"
                       >
                         {examplePrompt.text}
                         <div className="i-ph:arrow-bend-down-left" />
