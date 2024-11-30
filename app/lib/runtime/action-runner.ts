@@ -46,7 +46,7 @@ export class ActionRunner {
     this.#shellTerminal = getShellTerminal;
   }
 
-  addAction(data: ActionCallbackData) {
+  addAction(data: ActionCallbackData): string {
     const { actionId } = data;
 
     const actions = this.actions.get();
@@ -54,7 +54,7 @@ export class ActionRunner {
 
     if (action) {
       // action already added
-      return;
+      return actionId;
     }
 
     const abortController = new AbortController();
@@ -73,22 +73,18 @@ export class ActionRunner {
     this.#currentExecutionPromise.then(() => {
       this.#updateAction(actionId, { status: 'running' });
     });
+
+    return actionId;
   }
 
-  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+
+  async runAction(data: ActionCallbackData, isStreaming: boolean = false): Promise<void> {
     const { actionId } = data;
+
     const action = this.actions.get()[actionId];
 
-    if (!action) {
-      unreachable(`Action ${actionId} not found`);
-    }
-
-    if (action.executed) {
-      return;
-    }
-
     if (isStreaming && action.type !== 'file') {
-      return;
+      return this.#currentExecutionPromise;
     }
 
     this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming });
@@ -100,7 +96,9 @@ export class ActionRunner {
       .catch((error) => {
         console.error('Action failed:', error);
       });
-      return this.#currentExecutionPromise;
+
+    await this.#currentExecutionPromise;
+
   }
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
