@@ -11,9 +11,6 @@ dist
 dist-ssr
 *.local
 
-.vscode/*
-.vscode/launch.json
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -33,6 +30,7 @@ _worker.bundle
 
 Modelfile
 modelfiles
+package-lock.json
 
 # docs ignore
 site
