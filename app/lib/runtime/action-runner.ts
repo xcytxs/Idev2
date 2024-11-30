@@ -75,7 +75,7 @@ export class ActionRunner {
     });
   }
 
-  async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  async runAction(data: ActionCallbackData, isStreaming: boolean = false): Promise<void> {
     const { actionId } = data;
     const action = this.actions.get()[actionId];
 
@@ -100,7 +100,8 @@ export class ActionRunner {
       .catch((error) => {
         console.error('Action failed:', error);
       });
-      return this.#currentExecutionPromise;
+
+    await this.#currentExecutionPromise;
   }
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
