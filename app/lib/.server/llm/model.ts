@@ -24,9 +24,13 @@ export function getAnthropicModel(apiKey: OptionalApiKey, model: string) {
   return anthropic(model);
 }
 export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, model: string) {
+  if (!baseURL) {
+    throw new Error('OpenAI Like API Base URL is required');
+  }
+
   const openai = createOpenAI({
-    baseURL,
-    apiKey,
+    baseURL: baseURL.endsWith('/v1') ? baseURL : `${baseURL}/v1`,
+    apiKey: apiKey || 'not-needed',
   });
 
   return openai(model);

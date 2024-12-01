@@ -25,38 +25,91 @@ import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 // @ts-ignore TODO: Introduce proper types
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ModelSelector = ({ model, setModel, provider, setProvider, modelList, providerList, apiKeys }) => {
-  return (
-    <div className="mb-2 flex gap-2 flex-col sm:flex-row">
-      <select
-        value={provider?.name}
-        onChange={(e) => {
-          setProvider(providerList.find((p: ProviderInfo) => p.name === e.target.value));
+  const [customUrl, setCustomUrl] = useState('');
+  const [customModel, setCustomModel] = useState('');
 
-          const firstModel = [...modelList].find((m) => m.provider == e.target.value);
-          setModel(firstModel ? firstModel.name : '');
-        }}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
-      >
-        {providerList.map((provider: ProviderInfo) => (
-          <option key={provider.name} value={provider.name}>
-            {provider.name}
-          </option>
-        ))}
-      </select>
-      <select
-        key={provider?.name}
-        value={model}
-        onChange={(e) => setModel(e.target.value)}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all lg:max-w-[70%] "
-      >
-        {[...modelList]
-          .filter((e) => e.provider == provider?.name && e.name)
-          .map((modelOption) => (
-            <option key={modelOption.name} value={modelOption.name}>
-              {modelOption.label}
+  useEffect(() => {
+    if (provider?.name === 'OpenAILike') {
+      setCustomUrl(import.meta.env.OPENAI_LIKE_API_BASE_URL || '');
+      setCustomModel(model || '');
+    } else if (provider?.name === 'Ollama') {
+      setCustomUrl(import.meta.env.OLLAMA_API_BASE_URL || 'http://localhost:11434');
+    }
+  }, [provider?.name]);
+
+  return (
+    <div className="mb-2 flex gap-2 flex-col">
+      <div className="flex gap-2 flex-col sm:flex-row">
+        <select
+          value={provider?.name}
+          onChange={(e) => {
+            setProvider(providerList.find((p: ProviderInfo) => p.name === e.target.value));
+
+            const firstModel = [...modelList].find((m) => m.provider == e.target.value);
+            setModel(firstModel ? firstModel.name : '');
+          }}
+          className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+        >
+          {providerList.map((provider: ProviderInfo) => (
+            <option key={provider.name} value={provider.name}>
+              {provider.name}
             </option>
           ))}
-      </select>
+        </select>
+        {provider?.name !== 'OpenAILike' && (
+          <select
+            key={provider?.name}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all lg:max-w-[70%]"
+          >
+            {[...modelList]
+              .filter((e) => e.provider == provider?.name && e.name)
+              .map((modelOption) => (
+                <option key={modelOption.name} value={modelOption.name}>
+                  {modelOption.label}
+                </option>
+              ))}
+          </select>
+        )}
+      </div>
+      {(provider?.name === 'OpenAILike' || provider?.name === 'Ollama') && (
+        <div className="flex gap-2 flex-col sm:flex-row">
+          <input
+            type="text"
+            placeholder={
+              provider?.name === 'Ollama'
+                ? 'Ollama API URL (default: http://localhost:11434)'
+                : 'Enter API Base URL (e.g., http://localhost:1234/v1)'
+            }
+            value={customUrl}
+            onChange={(e) => {
+              setCustomUrl(e.target.value);
+
+              if (typeof window !== 'undefined') {
+                if (provider?.name === 'OpenAILike') {
+                  window.localStorage.setItem('OPENAI_LIKE_API_BASE_URL', e.target.value);
+                } else if (provider?.name === 'Ollama') {
+                  window.localStorage.setItem('OLLAMA_API_BASE_URL', e.target.value || 'http://localhost:11434');
+                }
+              }
+            }}
+            className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+          />
+          {provider?.name === 'OpenAILike' && (
+            <input
+              type="text"
+              placeholder="Enter Model Name"
+              value={customModel}
+              onChange={(e) => {
+                setCustomModel(e.target.value);
+                setModel(e.target.value);
+              }}
+              className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };

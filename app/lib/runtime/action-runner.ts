@@ -81,6 +81,7 @@ export class ActionRunner {
 
     if (!action) {
       unreachable(`Action ${actionId} not found`);
+      return;
     }
 
     if (action.executed) {
@@ -100,7 +101,6 @@ export class ActionRunner {
       .catch((error) => {
         console.error('Action failed:', error);
       });
-      return this.#currentExecutionPromise;
   }
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {

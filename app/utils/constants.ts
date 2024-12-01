@@ -48,6 +48,8 @@ const PROVIDER_LIST: ProviderInfo[] = [
     name: 'OpenAILike',
     staticModels: [],
     getDynamicModels: getOpenAILikeModels,
+    getApiKeyLink: '',
+    labelForGetApiKey: 'API Key (Optional)',
   },
   {
     name: 'Cohere',
@@ -268,25 +270,24 @@ const staticModels: ModelInfo[] = PROVIDER_LIST.map((p) => p.staticModels).flat(
 export let MODEL_LIST: ModelInfo[] = [...staticModels];
 
 const getOllamaBaseUrl = () => {
-  const defaultBaseUrl = import.meta.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
-
   // Check if we're in the browser
   if (typeof window !== 'undefined') {
-    // Frontend always uses localhost
-    return defaultBaseUrl;
+    // Try to get URL from localStorage first, then env, then default
+    return (
+      window.localStorage.getItem('OLLAMA_API_BASE_URL') ||
+      import.meta.env.OLLAMA_API_BASE_URL ||
+      'http://localhost:11434'
+    );
   }
 
   // Backend: Check if we're running in Docker
+  const defaultBaseUrl = process.env.OLLAMA_API_BASE_URL || 'http://localhost:11434';
   const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
 
   return isDocker ? defaultBaseUrl.replace('localhost', 'host.docker.internal') : defaultBaseUrl;
 };
 
 async function getOllamaModels(): Promise<ModelInfo[]> {
-  //if (typeof window === 'undefined') {
-    //return [];
-  //}
-
   try {
     const baseUrl = getOllamaBaseUrl();
     const response = await fetch(`${baseUrl}/api/tags`);
@@ -298,8 +299,8 @@ async function getOllamaModels(): Promise<ModelInfo[]> {
       provider: 'Ollama',
       maxTokenAllowed: 8000,
     }));
-  } catch (e) {
-    console.error('Error getting Ollama models:', e);
+  } catch (error) {
+    console.error('Error getting Ollama models:', error);
     return [];
   }
 }
@@ -307,26 +308,47 @@ async function getOllamaModels(): Promise<ModelInfo[]> {
 async function getOpenAILikeModels(): Promise<ModelInfo[]> {
   try {
     const baseUrl = import.meta.env.OPENAI_LIKE_API_BASE_URL || '';
+    const customModel = typeof window !== 'undefined' ? window.localStorage.getItem('OPENAI_LIKE_MODEL') : '';
 
     if (!baseUrl) {
       return [];
     }
 
     const apiKey = import.meta.env.OPENAI_LIKE_API_KEY ?? '';
-    const response = await fetch(`${baseUrl}/models`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-    const res = (await response.json()) as any;
 
-    return res.data.map((model: any) => ({
-      name: model.id,
-      label: model.id,
-      provider: 'OpenAILike',
-    }));
-  } catch (e) {
-    console.error('Error getting OpenAILike models:', e);
+    try {
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      const res = (await response.json()) as any;
+
+      return res.data.map((model: any) => ({
+        name: model.id,
+        label: model.id,
+        provider: 'OpenAILike',
+        maxTokenAllowed: 8000,
+      }));
+    } catch (err) {
+      console.error('Error getting OpenAILike models:', err);
+
+      // If we can't fetch models, return a default model if one is set
+      if (customModel) {
+        return [
+          {
+            name: customModel,
+            label: customModel,
+            provider: 'OpenAILike',
+            maxTokenAllowed: 8000,
+          },
+        ];
+      }
+
+      return [];
+    }
+  } catch (err) {
+    console.error('Error getting OpenAILike models:', err);
     return [];
   }
 }
