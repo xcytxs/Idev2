@@ -79,7 +79,7 @@ export function useChatHistory() {
                 {
                   "id": storedMessages.messages[snapshot.chatIndex-1].id,
                   "role":"assistant",
-                  "content":` 📦 Restoring chat from snapshot`, 
+                  "content":` 📦 Chat Restored from snapshot`, 
                   annotations:['no-store']
                 },
                 {
