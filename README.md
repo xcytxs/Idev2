@@ -246,6 +246,24 @@ pnpm run dev
 
 This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
+### Development with VSCode
+
+Add the following launch configuration to your `.vscode/launch.json`
+
+```json
+{
+  "name": "pnpm dev",
+  "type": "node",
+  "request": "launch",
+  "program": "${workspaceFolder}/node_modules/pnpm/bin/pnpm.cjs",
+  "args": [
+    "dev"
+  ],
+  "console": "integratedTerminal",
+  "internalConsoleOptions": "neverOpen"
+}
+```
+
 ## FAQ
 
 ### How do I get the best results with oTToDev?

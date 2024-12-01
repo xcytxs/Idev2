@@ -11,6 +11,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
 import type { LanguageModelV1 } from 'ai';
+import { getMockParrotModel } from '~/lib/.server/llm/getMockParrotModel';
 
 export const DEFAULT_NUM_CTX = process.env.DEFAULT_NUM_CTX ? parseInt(process.env.DEFAULT_NUM_CTX, 10) : 32768;
 
@@ -23,6 +24,7 @@ export function getAnthropicModel(apiKey: OptionalApiKey, model: string) {
 
   return anthropic(model);
 }
+
 export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, model: string) {
   const openai = createOpenAI({
     baseURL,
@@ -156,6 +158,8 @@ export function getModel(provider: string, model: string, env: Env, apiKeys?: Re
       return getXAIModel(apiKey, model);
     case 'Cohere':
       return getCohereAIModel(apiKey, model);
+    case 'MockParrot':
+      return getMockParrotModel();
     default:
       return getOllamaModel(baseURL, model);
   }
